@@ -4,6 +4,8 @@ A desktop assistant for Linux that can understand natural-language commands and 
 
 It includes a terminal interface and a PyQt6 desktop app with an optional microphone and wake-word mode. Commands are routed to Gemini, Claude, OpenAI, or a local Ollama instance when available; simple built-in rules provide a fallback when no provider is configured.
 
+> **Project status: under development.** The current version is an early desktop prototype and its capabilities will continue to change.
+
 ## Features
 
 - Run commands from the terminal or desktop chat window
@@ -82,6 +84,17 @@ Better Jarvis prefers Gemini for ordinary online requests. For more involved req
 ## Security note
 
 This project can execute actions on your computer. Review commands before running them and keep API keys only in `.env`.
+
+## Roadmap
+
+Planned improvements include:
+
+1. Better Ollama integration, including clear detection and status reporting when Ollama is installed and running.
+2. A web version that can be used from any device, including a phone, with a choice of local Ollama, Gemini, OpenAI/ChatGPT, Claude, or other available providers.
+3. Account security and suspicious-activity detection so only the owner can access the assistant.
+4. Training or personalization capabilities.
+5. Built-in web search.
+6. A switchable DeepSeek provider option.
 
 ## License
 
