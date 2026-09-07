@@ -1,0 +1,24 @@
+# Virtual environments (Linux and Windows — not portable)
+venv-linux/
+venv/
+venv-windows/
+
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local runtime leftovers
+*.png
+*.log

@@ -1,0 +1,21 @@
+# Core (steps 2–5)
+python-dotenv
+psutil
+Pillow
+pyperclip
+
+# LLM providers (steps 3–4, 9)
+google-generativeai
+anthropic
+openai
+
+# GUI (steps 6–7)
+PyQt6
+
+# Voice transcription (step 8). pyaudio needs:
+#   sudo apt install portaudio19-dev
+SpeechRecognition
+# pyaudio
+
+# Optional screenshot/automation (Linux: sudo apt install python3-tk)
+# pyautogui
