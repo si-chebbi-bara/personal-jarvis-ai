@@ -65,8 +65,21 @@ def _is_complex(command: str) -> bool:
     return any(hint in text for hint in COMPLEX_HINTS)
 
 
-def choose_provider(command: str) -> str:
-    """Gemini first, then Claude, then OpenAI. Complex + Claude key -> Claude. Offline -> Ollama."""
+VALID_PROVIDERS = ("gemini", "claude", "openai", "ollama", "local")
+
+
+def choose_provider(command: str, forced_provider: str | None = None) -> str:
+    """Gemini first, then Claude, then OpenAI. Complex + Claude key -> Claude. Offline -> Ollama.
+
+    If forced_provider names a real provider, return it directly and skip auto-selection.
+    None, "", or "auto" fall through to the normal logic.
+    """
+    forced = (forced_provider or "").strip().lower()
+    if forced and forced != "auto":
+        if forced in VALID_PROVIDERS:
+            return forced
+        # Unknown name -> ignore it and auto-select rather than erroring.
+
     online = is_online()
     gemini = _key("GEMINI_API_KEY")
     anthropic = _key("ANTHROPIC_API_KEY")
@@ -90,13 +103,13 @@ def choose_provider(command: str) -> str:
     return "local"
 
 
-def get_action(command: str) -> dict:
+def get_action(command: str, forced_provider: str | None = None) -> dict:
     """Return tool call(s) and/or a chat message. Never raises."""
     text = (command or "").strip()
     if not text:
         return {"success": False, "message": "Empty command."}
 
-    provider = choose_provider(text)
+    provider = choose_provider(text, forced_provider)
     try:
         if provider == "gemini":
             return _from_gemini(text)
@@ -254,7 +267,7 @@ def _from_openai(command: str) -> dict:
 
 def _from_ollama(command: str) -> dict:
     payload = {
-        "model": os.getenv("OLLAMA_MODEL") or "llama3.2",
+        "model": os.getenv("OLLAMA_MODEL") or "qwen2.5:7b", 
         "stream": False,
         "messages": [
             {"role": "system", "content": SYSTEM_INSTRUCTION + " " + _ollama_json_hint()},
@@ -374,11 +387,11 @@ def _local_call(tool: str, arguments: dict | None = None) -> dict:
     }
 
 
-def handle(command: str) -> dict:
-    """Brain + executor in one call (used by CLI, GUI, and voice)."""
+def handle(command: str, forced_provider: str | None = None) -> dict:
+    """Brain + executor in one call (used by CLI, GUI, voice, and the web API)."""
     from core.executor import execute
 
-    decision = get_action(command)
+    decision = get_action(command, forced_provider)
     result = execute(decision)
     provider = decision.get("provider") or "unknown"
     result["provider"] = provider
