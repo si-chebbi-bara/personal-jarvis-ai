@@ -19,3 +19,5 @@ SpeechRecognition
 
 # Optional screenshot/automation (Linux: sudo apt install python3-tk)
 # pyautogui
+fastapi
+uvicorn
