@@ -4,9 +4,12 @@ import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
 import ToolPanel from './components/ToolPanel'
 
+const STORAGE_KEY = 'jarvis.chats'
+const TITLE_MAX = 40
+
 // Hard-coded sample content for the tool panel. The backend does not report
-// tool activity yet, so this stands in for a future real event payload that
-// will arrive in the same { lines } / { url, body } shape.
+// tool activity yet; this stands in for a future event payload of the same
+// shape ({ lines } for terminal, { url, body } for browser).
 const MOCK_TOOL_CONTENT = {
   terminal: {
     lines: [
@@ -23,26 +26,42 @@ const MOCK_TOOL_CONTENT = {
   },
 }
 
-const STORAGE_KEY = 'jarvis.chats'
-const TITLE_MAX = 40
+const makeChat = () => ({
+  id: crypto.randomUUID(),
+  title: null,
+  messages: [],
+  updatedAt: Date.now(),
+})
 
-// Load persisted chats once at startup. Wrapped defensively: a corrupt or
-// missing value should just give us an empty list, never crash the app.
+// Load persisted chats once at startup. A corrupt or missing value should just
+// give an empty list, never crash the app.
 function loadChats() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const parsed = raw ? JSON.parse(raw) : []
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
     return Array.isArray(parsed) ? parsed : []
   } catch {
     return []
   }
 }
 
-// Derive a chat title from its first user message. Never calls the backend.
+// Title derived from the first user message — first ~40 chars, never a backend call.
 function deriveTitle(text) {
   const clean = text.trim().replace(/\s+/g, ' ')
-  if (clean.length <= TITLE_MAX) return clean
-  return clean.slice(0, TITLE_MAX).trimEnd() + '…'
+  return clean.length <= TITLE_MAX
+    ? clean
+    : clean.slice(0, TITLE_MAX).trimEnd() + '…'
+}
+
+// A copy of `chat` with messages appended and its title/timestamp refreshed.
+function withMessages(chat, added) {
+  const messages = [...chat.messages, ...added]
+  const firstUser = messages.find((m) => m.role === 'user')
+  return {
+    ...chat,
+    messages,
+    title: chat.title || (firstUser ? deriveTitle(firstUser.text) : null),
+    updatedAt: Date.now(),
+  }
 }
 
 function App() {
@@ -53,62 +72,34 @@ function App() {
   const [toolPanelOpen, setToolPanelOpen] = useState(false)
   const [activeTool, setActiveTool] = useState('terminal')
 
-  // Persist the whole chat list on every change. localStorage is the only
-  // source of truth for history right now — the backend has no notion of
-  // conversations.
+  // Persist on every change — localStorage is the only store of chat history.
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(chats))
     } catch {
-      // Storage full or blocked (private mode) — nothing useful to do here.
+      // Storage full or blocked (private mode) — nothing useful to do.
     }
   }, [chats])
 
   const activeChat = chats.find((c) => c.id === activeChatId) || null
 
   function newChat() {
-    const id = crypto.randomUUID()
-    setChats((prev) => [
-      { id, title: null, messages: [], updatedAt: Date.now() },
-      ...prev,
-    ])
-    setActiveChatId(id)
+    const chat = makeChat()
+    setChats((prev) => [chat, ...prev])
+    setActiveChatId(chat.id)
   }
 
-  // Append one or more messages to the active chat. If there is no active chat
-  // yet (fresh page load, straight into typing) create one on the fly. Also
-  // fills in the title from the first user message and bumps updatedAt so the
-  // chat floats to the top of Recent.
-  function appendMessages(newMessages) {
-    // Pre-compute a fresh id so both state updates below agree on it without
-    // one setter reaching into the other.
-    const fallbackId = crypto.randomUUID()
-    const haveActive = chats.some((c) => c.id === activeChatId)
-    const targetId = haveActive ? activeChatId : fallbackId
-    if (!haveActive) setActiveChatId(fallbackId)
+  // Append message(s) to the active chat, creating one first if none is active
+  // (e.g. typing straight after a fresh page load). Newest chat sorts first.
+  function appendMessages(added) {
+    const target = activeChat || makeChat()
+    if (!activeChat) setActiveChatId(target.id)
 
     setChats((prev) => {
-      const list = prev.some((c) => c.id === targetId)
-        ? prev
-        : [
-            { id: targetId, title: null, messages: [], updatedAt: Date.now() },
-            ...prev,
-          ]
-
-      const updated = list.map((chat) => {
-        if (chat.id !== targetId) return chat
-        const messages = [...chat.messages, ...newMessages]
-        let title = chat.title
-        if (!title) {
-          const firstUser = messages.find((m) => m.role === 'user')
-          if (firstUser) title = deriveTitle(firstUser.text)
-        }
-        return { ...chat, messages, title, updatedAt: Date.now() }
-      })
-
-      // Keep Recent ordered newest-first.
-      updated.sort((a, b) => b.updatedAt - a.updatedAt)
-      return updated
+      const list = prev.some((c) => c.id === target.id) ? prev : [target, ...prev]
+      return list
+        .map((c) => (c.id === target.id ? withMessages(c, added) : c))
+        .sort((a, b) => b.updatedAt - a.updatedAt)
     })
   }
 

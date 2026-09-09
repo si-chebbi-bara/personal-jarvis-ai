@@ -7,6 +7,9 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 
 const PROVIDERS = ['auto', 'gemini', 'claude', 'openai', 'ollama']
 
+// Speaker label shown above each bubble; anything else (e.g. 'jarvis') is Jarvis.
+const ROLE_LABEL = { user: 'You', error: 'Error' }
+
 /*
  * Centre panel: the chat itself. This is the original App.jsx chat logic moved
  * here almost unchanged. The one structural difference is that the message list
@@ -110,11 +113,7 @@ function ChatWindow({
         {messages.map((msg, i) => (
           <div key={i} className={`msg ${msg.role}`}>
             <span className="who">
-              {msg.role === 'user'
-                ? 'You'
-                : msg.role === 'error'
-                  ? 'Error'
-                  : 'Jarvis'}
+              {ROLE_LABEL[msg.role] || 'Jarvis'}
               {msg.provider ? ` (${msg.provider})` : ''}
             </span>
             <span className="text">{msg.text}</span>

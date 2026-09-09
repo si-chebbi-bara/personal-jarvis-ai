@@ -4,9 +4,9 @@
 
 /*
  * Three-column app shell: fixed-width sidebar, fluid chat column, and an
- * optional tool panel that only takes space when it is open. Using CSS grid
- * (rather than fl: 1 boxes) so the chat column shrinks predictably when the
- * tool panel appears instead of overlaying on top of it.
+ * optional tool panel that only takes space when it is open. CSS grid (rather
+ * than flex: 1 boxes) so the chat column shrinks predictably when the tool
+ * panel appears instead of being overlaid.
  */
 .layout {
   display: grid;
@@ -16,24 +16,12 @@
   font-family: var(--sans);
 }
 
-/* When the tool panel is open, App adds this modifier to reserve a third column. */
+/* App adds this modifier while the tool panel is open to reserve a 3rd column. */
 .layout.has-tool {
   grid-template-columns: 260px minmax(0, 1fr) 420px;
 }
 
-.layout-chat {
-  display: flex;
-  flex-direction: column;
+/* Let every column shrink below its content width instead of overflowing. */
+.layout > * {
   min-width: 0;
-  background: var(--bg);
-  color: var(--text);
-  border-left: 1px solid var(--border);
-}
-
-.layout-tool {
-  min-width: 0;
-  background: var(--bg);
-  color: var(--text);
-  border-left: 1px solid var(--border);
-  overflow: hidden;
 }

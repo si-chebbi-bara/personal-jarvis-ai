@@ -1,5 +1,8 @@
 import './ToolPanel.css'
 
+const TOOLS = ['terminal', 'browser']
+const TOOL_LABEL = { terminal: 'Terminal', browser: 'Browser' }
+
 /*
  * Right-hand panel — UI shell only. It renders whatever it is told to via props
  * and owns no data of its own, so a future version can pass real backend events
@@ -15,26 +18,19 @@ function ToolPanel({ activeTool, content, onClose, onSelectTool }) {
     <aside className="toolpanel">
       <header className="toolpanel-header">
         <span className="toolpanel-title">
-          {activeTool === 'terminal'
-            ? 'Terminal'
-            : activeTool === 'browser'
-              ? 'Browser'
-              : 'Tool panel'}
+          {TOOL_LABEL[activeTool] || 'Tool panel'}
         </span>
         <span className="toolpanel-preview-tag">preview</span>
         <div className="toolpanel-switch">
-          <button
-            className={activeTool === 'terminal' ? 'active' : ''}
-            onClick={() => onSelectTool('terminal')}
-          >
-            Terminal
-          </button>
-          <button
-            className={activeTool === 'browser' ? 'active' : ''}
-            onClick={() => onSelectTool('browser')}
-          >
-            Browser
-          </button>
+          {TOOLS.map((tool) => (
+            <button
+              key={tool}
+              className={activeTool === tool ? 'active' : ''}
+              onClick={() => onSelectTool(tool)}
+            >
+              {TOOL_LABEL[tool]}
+            </button>
+          ))}
         </div>
         <button className="toolpanel-close" onClick={onClose} aria-label="Close">
           ×
