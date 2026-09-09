@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import Sidebar from './components/Sidebar'
+import ChatWindow from './components/ChatWindow'
 
 const STORAGE_KEY = 'jarvis.chats'
+const TITLE_MAX = 40
 
 // Load persisted chats once at startup. Wrapped defensively: a corrupt or
 // missing value should just give us an empty list, never crash the app.
@@ -16,10 +18,19 @@ function loadChats() {
   }
 }
 
+// Derive a chat title from its first user message. Never calls the backend.
+function deriveTitle(text) {
+  const clean = text.trim().replace(/\s+/g, ' ')
+  if (clean.length <= TITLE_MAX) return clean
+  return clean.slice(0, TITLE_MAX).trimEnd() + '…'
+}
+
 function App() {
   const [mode, setMode] = useState('manual')
   const [chats, setChats] = useState(loadChats)
   const [activeChatId, setActiveChatId] = useState(null)
+  const [provider, setProvider] = useState('auto')
+  const [toolPanelOpen, setToolPanelOpen] = useState(false)
 
   // Persist the whole chat list on every change. localStorage is the only
   // source of truth for history right now — the backend has no notion of
@@ -32,6 +43,8 @@ function App() {
     }
   }, [chats])
 
+  const activeChat = chats.find((c) => c.id === activeChatId) || null
+
   function newChat() {
     const id = crypto.randomUUID()
     setChats((prev) => [
@@ -41,8 +54,45 @@ function App() {
     setActiveChatId(id)
   }
 
+  // Append one or more messages to the active chat. If there is no active chat
+  // yet (fresh page load, straight into typing) create one on the fly. Also
+  // fills in the title from the first user message and bumps updatedAt so the
+  // chat floats to the top of Recent.
+  function appendMessages(newMessages) {
+    // Pre-compute a fresh id so both state updates below agree on it without
+    // one setter reaching into the other.
+    const fallbackId = crypto.randomUUID()
+    const haveActive = chats.some((c) => c.id === activeChatId)
+    const targetId = haveActive ? activeChatId : fallbackId
+    if (!haveActive) setActiveChatId(fallbackId)
+
+    setChats((prev) => {
+      const list = prev.some((c) => c.id === targetId)
+        ? prev
+        : [
+            { id: targetId, title: null, messages: [], updatedAt: Date.now() },
+            ...prev,
+          ]
+
+      const updated = list.map((chat) => {
+        if (chat.id !== targetId) return chat
+        const messages = [...chat.messages, ...newMessages]
+        let title = chat.title
+        if (!title) {
+          const firstUser = messages.find((m) => m.role === 'user')
+          if (firstUser) title = deriveTitle(firstUser.text)
+        }
+        return { ...chat, messages, title, updatedAt: Date.now() }
+      })
+
+      // Keep Recent ordered newest-first.
+      updated.sort((a, b) => b.updatedAt - a.updatedAt)
+      return updated
+    })
+  }
+
   return (
-    <div className="layout">
+    <div className={'layout' + (toolPanelOpen ? ' has-tool' : '')}>
       <Sidebar
         mode={mode}
         onModeChange={setMode}
@@ -51,7 +101,15 @@ function App() {
         onNewChat={newChat}
         onSelectChat={setActiveChatId}
       />
-      <main className="layout-chat">chat</main>
+      <ChatWindow
+        key={activeChatId || 'no-chat'}
+        messages={activeChat ? activeChat.messages : []}
+        onAppendMessages={appendMessages}
+        provider={provider}
+        onProviderChange={setProvider}
+        toolPanelOpen={toolPanelOpen}
+        onToggleToolPanel={() => setToolPanelOpen((v) => !v)}
+      />
     </div>
   )
 }
