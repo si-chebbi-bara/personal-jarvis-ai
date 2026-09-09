@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import './ChatWindow.css'
 
 // Where the FastAPI backend lives. Override with a VITE_API_BASE entry in
@@ -116,7 +117,13 @@ function ChatWindow({
               {ROLE_LABEL[msg.role] || 'Jarvis'}
               {msg.provider ? ` (${msg.provider})` : ''}
             </span>
-            <span className="text">{msg.text}</span>
+            <div className="text">
+              {msg.role === 'jarvis' ? (
+                <ReactMarkdown>{msg.text}</ReactMarkdown>
+              ) : (
+                msg.text
+              )}
+            </div>
           </div>
         ))}
         {busy && <div className="msg jarvis pending">Jarvis is thinking…</div>}
