@@ -2,6 +2,26 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
+import ToolPanel from './components/ToolPanel'
+
+// Hard-coded sample content for the tool panel. The backend does not report
+// tool activity yet, so this stands in for a future real event payload that
+// will arrive in the same { lines } / { url, body } shape.
+const MOCK_TOOL_CONTENT = {
+  terminal: {
+    lines: [
+      '$ jarvis run "check disk space"',
+      'Filesystem      Size  Used Avail Use% Mounted on',
+      '/dev/nvme0n1p2  467G  312G  132G  71% /',
+      '',
+      '✓ done in 0.4s',
+    ],
+  },
+  browser: {
+    url: 'https://example.com/search?q=weather+today',
+    body: 'Rendered page content would appear here.',
+  },
+}
 
 const STORAGE_KEY = 'jarvis.chats'
 const TITLE_MAX = 40
@@ -31,6 +51,7 @@ function App() {
   const [activeChatId, setActiveChatId] = useState(null)
   const [provider, setProvider] = useState('auto')
   const [toolPanelOpen, setToolPanelOpen] = useState(false)
+  const [activeTool, setActiveTool] = useState('terminal')
 
   // Persist the whole chat list on every change. localStorage is the only
   // source of truth for history right now — the backend has no notion of
@@ -110,6 +131,14 @@ function App() {
         toolPanelOpen={toolPanelOpen}
         onToggleToolPanel={() => setToolPanelOpen((v) => !v)}
       />
+      {toolPanelOpen && (
+        <ToolPanel
+          activeTool={activeTool}
+          content={MOCK_TOOL_CONTENT[activeTool]}
+          onSelectTool={setActiveTool}
+          onClose={() => setToolPanelOpen(false)}
+        />
+      )}
     </div>
   )
 }
