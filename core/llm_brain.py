@@ -13,6 +13,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from core.tools import SYSTEM_INSTRUCTION, TOOL_DECLARATIONS
+from core.memory import get_context, log_exchange
 
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
@@ -109,16 +110,19 @@ def get_action(command: str, forced_provider: str | None = None) -> dict:
     if not text:
         return {"success": False, "message": "Empty command."}
 
+    context = get_context()
+    prompt_text = f"{context}\n\nUser: {text}" if context else text
+
     provider = choose_provider(text, forced_provider)
     try:
         if provider == "gemini":
-            return _from_gemini(text)
+            return _from_gemini(prompt_text)
         if provider == "claude":
-            return _from_claude(text)
+            return _from_claude(prompt_text)
         if provider == "openai":
-            return _from_openai(text)
+            return _from_openai(prompt_text)
         if provider == "ollama":
-            return _from_ollama(text)
+            return _from_ollama(prompt_text)
         return _from_local(text)
     except Exception as exc:
         local = _from_local(text)
@@ -395,4 +399,7 @@ def handle(command: str, forced_provider: str | None = None) -> dict:
     result = execute(decision)
     provider = decision.get("provider") or "unknown"
     result["provider"] = provider
+
+    log_exchange(command, result.get("message", ""))
+
     return result
