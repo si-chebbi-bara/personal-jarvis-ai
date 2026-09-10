@@ -114,6 +114,8 @@ function App() {
         onSelectChat={setActiveChatId}
       />
       <ChatWindow
+        // Remount on chat switch so the composer draft and in-flight state
+        // never leak from one conversation into another.
         key={activeChatId || 'no-chat'}
         messages={activeChat ? activeChat.messages : []}
         onAppendMessages={appendMessages}

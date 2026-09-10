@@ -66,8 +66,17 @@
   max-width: 85%;
   padding: 8px 12px;
   border-radius: 10px;
-  white-space: pre-wrap;
   word-break: break-word;
+}
+
+/*
+ * Preserve newlines only for plain-text bubbles (user commands, error text).
+ * Jarvis bubbles render Markdown to real elements, so pre-wrap there would
+ * turn react-markdown's inter-element newlines into stray blank lines.
+ */
+.msg.user .text,
+.msg.error .text {
+  white-space: pre-wrap;
 }
 
 .msg .who {

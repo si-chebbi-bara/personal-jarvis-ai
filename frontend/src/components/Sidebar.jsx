@@ -2,6 +2,10 @@ import './Sidebar.css'
 
 const APP_VERSION = '0.1.0'
 
+// Top-of-rail mode switcher. Labels are placeholders and will be renamed later,
+// so they live in one place. 'manual' is the default (see App.jsx).
+const MODES = { manual: 'Manual', automatic: 'Automatic' }
+
 // Compact "time ago" label for the Recent list. Kept local because the sidebar
 // is the only place that needs it.
 function relativeTime(ts) {
@@ -32,18 +36,15 @@ function Sidebar({
   return (
     <div className="sidebar">
       <div className="sidebar-switcher">
-        <button
-          className={mode === 'manual' ? 'active' : ''}
-          onClick={() => onModeChange('manual')}
-        >
-          Manual
-        </button>
-        <button
-          className={mode === 'automatic' ? 'active' : ''}
-          onClick={() => onModeChange('automatic')}
-        >
-          Automatic
-        </button>
+        {Object.entries(MODES).map(([key, label]) => (
+          <button
+            key={key}
+            className={mode === key ? 'active' : ''}
+            onClick={() => onModeChange(key)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <div className="sidebar-body">

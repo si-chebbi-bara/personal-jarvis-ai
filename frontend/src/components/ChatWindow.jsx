@@ -111,6 +111,8 @@ function ChatWindow({
             &ldquo;open firefox&rdquo;, &ldquo;take a screenshot&rdquo;.
           </p>
         )}
+        {/* Index keys are safe here: messages are only ever appended, never
+            reordered or removed within a conversation. */}
         {messages.map((msg, i) => (
           <div key={i} className={`msg ${msg.role}`}>
             <span className="who">
