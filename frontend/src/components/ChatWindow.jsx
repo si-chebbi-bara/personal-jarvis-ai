@@ -1,0 +1,153 @@
+import { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import { API_BASE } from '../api'
+import './ChatWindow.css'
+
+const PROVIDERS = ['auto', 'gemini', 'claude', 'openai', 'ollama']
+
+// Speaker label shown above each bubble; anything else (e.g. 'jarvis') is Jarvis.
+const ROLE_LABEL = { user: 'You', error: 'Error' }
+
+/*
+ * Centre panel: the chat itself. This is the original App.jsx chat logic moved
+ * here almost unchanged. The one structural difference is that the message list
+ * is NOT local state any more — it is owned by App.jsx (so switching chats in
+ * the sidebar swaps the conversation) and arrives via props:
+ *   - messages          the active chat's messages
+ *   - onAppendMessages  append one or more messages to the active chat
+ */
+function ChatWindow({
+  messages,
+  onAppendMessages,
+  provider,
+  onProviderChange,
+  onToggleToolPanel,
+  toolPanelOpen,
+}) {
+  const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
+  const scrollRef = useRef(null)
+
+  // Keep the chat scrolled to the newest message.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages])
+
+  async function send() {
+    const command = input.trim()
+    if (!command || busy) return
+
+    onAppendMessages([{ role: 'user', text: command }])
+    setInput('')
+    setBusy(true)
+
+    try {
+      const res = await fetch(`${API_BASE}/api/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command, provider }),
+      })
+      if (!res.ok) {
+        throw new Error(`Backend returned HTTP ${res.status}`)
+      }
+      const data = await res.json()
+      onAppendMessages([
+        {
+          role: 'jarvis',
+          text: data.message || '(no message in response)',
+          provider: data.provider,
+          ok: data.success,
+        },
+      ])
+    } catch (err) {
+      // A plain fetch TypeError ("NetworkError...", "Failed to fetch") means
+      // the request never reached a server at all — almost always the
+      // backend just isn't running yet, not a real error to troubleshoot.
+      const text =
+        err instanceof TypeError
+          ? `Can't reach the Jarvis backend at ${API_BASE} — make sure "uvicorn server:app" is running.`
+          : `Could not reach Jarvis: ${err.message}`
+      onAppendMessages([{ role: 'error', text }])
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      send()
+    }
+  }
+
+  return (
+    <div className="chatwindow">
+      <header className="chatwindow-header">
+        <label className="chatwindow-provider">
+          Provider:
+          <select
+            value={provider}
+            onChange={(e) => onProviderChange(e.target.value)}
+          >
+            {PROVIDERS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          className="chatwindow-tooltoggle"
+          onClick={onToggleToolPanel}
+          aria-pressed={toolPanelOpen}
+        >
+          {toolPanelOpen ? 'Hide tool panel' : 'Preview tool panel'}
+        </button>
+      </header>
+
+      <div className="chatwindow-messages" ref={scrollRef}>
+        {messages.length === 0 && (
+          <p className="chatwindow-empty">
+            Ask Jarvis something — e.g. &ldquo;what&rsquo;s my battery&rdquo;,
+            &ldquo;open firefox&rdquo;, &ldquo;take a screenshot&rdquo;.
+          </p>
+        )}
+        {/* Index keys are safe here: messages are only ever appended, never
+            reordered or removed within a conversation. */}
+        {messages.map((msg, i) => (
+          <div key={i} className={`msg ${msg.role}`}>
+            <span className="who">
+              {ROLE_LABEL[msg.role] || 'Jarvis'}
+              {msg.provider ? ` (${msg.provider})` : ''}
+            </span>
+            <div className="text">
+              {msg.role === 'jarvis' ? (
+                <ReactMarkdown>{msg.text}</ReactMarkdown>
+              ) : (
+                msg.text
+              )}
+            </div>
+          </div>
+        ))}
+        {busy && <div className="msg jarvis pending">Jarvis is thinking…</div>}
+      </div>
+
+      <footer className="chatwindow-composer">
+        <textarea
+          rows={1}
+          value={input}
+          placeholder="Type a command and press Enter"
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={onKeyDown}
+          disabled={busy}
+        />
+        <button onClick={send} disabled={busy || !input.trim()}>
+          Send
+        </button>
+      </footer>
+    </div>
+  )
+}
+
+export default ChatWindow

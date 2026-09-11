@@ -1,0 +1,129 @@
+.toolpanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: var(--bg);
+  color: var(--text);
+  border-left: 1px solid var(--border);
+}
+
+.toolpanel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.toolpanel-title {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.toolpanel-preview-tag {
+  padding: 1px 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+}
+
+.toolpanel-switch {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  padding: 2px;
+  background: var(--code-bg);
+  border-radius: 7px;
+}
+
+.toolpanel-switch button {
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.toolpanel-switch button.active {
+  color: var(--text-h);
+  background: var(--bg);
+}
+
+.toolpanel-close {
+  width: 26px;
+  height: 26px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.toolpanel-close:hover {
+  background: var(--code-bg);
+}
+
+.toolpanel-body {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+
+/* Terminal view — always dark, regardless of colour scheme. */
+.toolpanel-terminal {
+  margin: 0;
+  height: 100%;
+  padding: 12px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: #d4d4d4;
+  background: #171717;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.toolpanel-browser {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.toolpanel-addressbar {
+  padding: 8px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--code-bg);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolpanel-browser-content {
+  flex: 1;
+  padding: 16px;
+  overflow: auto;
+  color: var(--text-h);
+}
+
+.toolpanel-idle {
+  color: var(--text);
+  font-style: italic;
+}

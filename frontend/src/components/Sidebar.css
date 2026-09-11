@@ -1,0 +1,138 @@
+/*
+ * The sidebar stays dark in both colour schemes, so these are hard-coded
+ * greys rather than the index.css custom properties used elsewhere.
+ */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px;
+  font-size: 14px;
+  color: #e5e5e5;
+  background: #171717;
+}
+
+.sidebar-switcher {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: #0f0f0f;
+  border-radius: 8px;
+}
+
+.sidebar-switcher button {
+  flex: 1;
+  padding: 6px 8px;
+  font: inherit;
+  color: #a3a3a3;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sidebar-switcher button.active {
+  color: #f5f5f5;
+  background: #2a2a2a;
+}
+
+.sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+
+.sidebar-newchat {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  text-align: left;
+  color: #f5f5f5;
+  background: #262626;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sidebar-newchat:hover {
+  background: #303030;
+}
+
+.sidebar-section-label {
+  margin: 18px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #737373;
+}
+
+.sidebar-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-recent-empty {
+  padding: 6px 10px;
+  color: #737373;
+  font-style: italic;
+}
+
+.sidebar-recent-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  text-align: left;
+  color: #d4d4d4;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sidebar-recent-item:hover {
+  background: #202020;
+}
+
+.sidebar-recent-item.active {
+  background: #2a2a2a;
+  color: #f5f5f5;
+}
+
+.sidebar-recent-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-recent-time {
+  font-size: 12px;
+  color: #737373;
+}
+
+.sidebar-automatic-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+  color: #a3a3a3;
+}
+
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid #2a2a2a;
+  color: #a3a3a3;
+}
+
+.sidebar-version {
+  font-size: 12px;
+  color: #737373;
+}
