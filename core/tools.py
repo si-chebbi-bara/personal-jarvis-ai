@@ -116,6 +116,24 @@ TOOL_DECLARATIONS = [
             "required": ["path"],
         },
     },
+    {
+        "name": "run_shell_command",
+        "description": (
+            "Run a general, non-destructive shell/terminal command on the user's machine and return its "
+            "output — e.g. checking disk space, listing processes, viewing system info. A safety blocklist "
+            "rejects destructive commands (rm -rf, sudo, mkfs, dd, shutdown/reboot, piping curl/wget into a "
+            "shell, writes to /etc /boot /sys) automatically, so do not use this for anything that sounds "
+            "destructive — it will be refused."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "The shell command to run."},
+                "timeout": {"type": "integer", "description": "Max seconds to wait (default 30)."},
+            },
+            "required": ["command"],
+        },
+    },
 ]
 
 SYSTEM_INSTRUCTION = (
