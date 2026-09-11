@@ -14,6 +14,7 @@ from actions.system import (
     open_app,
     open_website,
     read_file,
+    run_shell_command,
     set_volume,
     take_screenshot,
 )
@@ -30,6 +31,7 @@ TOOLS = {
     "close_app": close_app,
     "get_system_stats": get_system_stats,
     "read_file": read_file,
+    "run_shell_command": run_shell_command,
 }
 
 
