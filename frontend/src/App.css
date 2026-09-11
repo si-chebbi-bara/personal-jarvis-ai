@@ -3,6 +3,39 @@
 }
 
 /*
+ * Outer wrapper: an optional backend-status banner stacked above the
+ * three-column layout. A plain flex column rather than fixed/sticky
+ * positioning, so the banner just pushes the layout down instead of
+ * overlapping it.
+ */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/*
+ * Shown while the FastAPI backend can't be reached (see the health check in
+ * App.jsx). Disappears on its own the moment a poll succeeds again.
+ */
+.backend-banner {
+  flex: none;
+  padding: 10px 16px;
+  background: #7a1f1f;
+  color: #fff;
+  font-size: 14px;
+  text-align: center;
+}
+
+.backend-banner code {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+/*
  * Three-column app shell: fixed-width sidebar, fluid chat column, and an
  * optional tool panel that only takes space when it is open. CSS grid (rather
  * than flex: 1 boxes) so the chat column shrinks predictably when the tool
@@ -11,7 +44,8 @@
 .layout {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
-  height: 100vh;
+  flex: 1;
+  min-height: 0;
   width: 100%;
   font-family: var(--sans);
 }

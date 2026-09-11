@@ -1,10 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { API_BASE } from '../api'
 import './ChatWindow.css'
-
-// Where the FastAPI backend lives. Override with a VITE_API_BASE entry in
-// frontend/.env when testing from another device (e.g. your phone on WiFi).
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 
 const PROVIDERS = ['auto', 'gemini', 'claude', 'openai', 'ollama']
 
@@ -64,9 +61,14 @@ function ChatWindow({
         },
       ])
     } catch (err) {
-      onAppendMessages([
-        { role: 'error', text: `Could not reach Jarvis: ${err.message}` },
-      ])
+      // A plain fetch TypeError ("NetworkError...", "Failed to fetch") means
+      // the request never reached a server at all — almost always the
+      // backend just isn't running yet, not a real error to troubleshoot.
+      const text =
+        err instanceof TypeError
+          ? `Can't reach the Jarvis backend at ${API_BASE} — make sure "uvicorn server:app" is running.`
+          : `Could not reach Jarvis: ${err.message}`
+      onAppendMessages([{ role: 'error', text }])
     } finally {
       setBusy(false)
     }

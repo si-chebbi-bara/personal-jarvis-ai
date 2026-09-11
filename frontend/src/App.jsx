@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import { API_BASE } from './api'
 import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
 import ToolPanel from './components/ToolPanel'
 
 const STORAGE_KEY = 'jarvis.chats'
 const TITLE_MAX = 40
+const HEALTH_RECHECK_MS = 5000
+const HEALTH_TIMEOUT_MS = 4000
 
 // Hard-coded sample content for the tool panel. The backend does not report
 // tool activity yet; this stands in for a future event payload of the same
@@ -64,7 +67,43 @@ function withMessages(chat, added) {
   }
 }
 
+// Polls the backend's root endpoint so the UI can say plainly "Jarvis isn't
+// running" instead of making the user find that out by sending a command and
+// reading a fetch error. Keeps polling while offline so the banner clears
+// itself the moment the backend comes up — no page reload needed.
+function useBackendStatus() {
+  const [status, setStatus] = useState('checking') // 'checking' | 'online' | 'offline'
+
+  useEffect(() => {
+    let cancelled = false
+    let timer
+
+    async function check() {
+      try {
+        const controller = new AbortController()
+        const abortTimer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS)
+        const res = await fetch(`${API_BASE}/`, { signal: controller.signal })
+        clearTimeout(abortTimer)
+        if (!cancelled) setStatus(res.ok ? 'online' : 'offline')
+      } catch {
+        if (!cancelled) setStatus('offline')
+      } finally {
+        if (!cancelled) timer = setTimeout(check, HEALTH_RECHECK_MS)
+      }
+    }
+
+    check()
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [])
+
+  return status
+}
+
 function App() {
+  const backendStatus = useBackendStatus()
   const [mode, setMode] = useState('manual')
   const [chats, setChats] = useState(loadChats)
   const [activeChatId, setActiveChatId] = useState(null)
@@ -104,34 +143,44 @@ function App() {
   }
 
   return (
-    <div className={'layout' + (toolPanelOpen ? ' has-tool' : '')}>
-      <Sidebar
-        mode={mode}
-        onModeChange={setMode}
-        chats={chats}
-        activeChatId={activeChatId}
-        onNewChat={newChat}
-        onSelectChat={setActiveChatId}
-      />
-      <ChatWindow
-        // Remount on chat switch so the composer draft and in-flight state
-        // never leak from one conversation into another.
-        key={activeChatId || 'no-chat'}
-        messages={activeChat ? activeChat.messages : []}
-        onAppendMessages={appendMessages}
-        provider={provider}
-        onProviderChange={setProvider}
-        toolPanelOpen={toolPanelOpen}
-        onToggleToolPanel={() => setToolPanelOpen((v) => !v)}
-      />
-      {toolPanelOpen && (
-        <ToolPanel
-          activeTool={activeTool}
-          content={MOCK_TOOL_CONTENT[activeTool]}
-          onSelectTool={setActiveTool}
-          onClose={() => setToolPanelOpen(false)}
-        />
+    <div className="app-shell">
+      {backendStatus === 'offline' && (
+        <div className="backend-banner" role="alert">
+          Can&rsquo;t reach the Jarvis backend at <code>{API_BASE}</code> —
+          start it with{' '}
+          <code>uvicorn server:app --host 0.0.0.0 --port 8000</code> in the
+          project folder. This will reconnect automatically.
+        </div>
       )}
+      <div className={'layout' + (toolPanelOpen ? ' has-tool' : '')}>
+        <Sidebar
+          mode={mode}
+          onModeChange={setMode}
+          chats={chats}
+          activeChatId={activeChatId}
+          onNewChat={newChat}
+          onSelectChat={setActiveChatId}
+        />
+        <ChatWindow
+          // Remount on chat switch so the composer draft and in-flight state
+          // never leak from one conversation into another.
+          key={activeChatId || 'no-chat'}
+          messages={activeChat ? activeChat.messages : []}
+          onAppendMessages={appendMessages}
+          provider={provider}
+          onProviderChange={setProvider}
+          toolPanelOpen={toolPanelOpen}
+          onToggleToolPanel={() => setToolPanelOpen((v) => !v)}
+        />
+        {toolPanelOpen && (
+          <ToolPanel
+            activeTool={activeTool}
+            content={MOCK_TOOL_CONTENT[activeTool]}
+            onSelectTool={setActiveTool}
+            onClose={() => setToolPanelOpen(false)}
+          />
+        )}
+      </div>
     </div>
   )
 }
