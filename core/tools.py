@@ -1,6 +1,7 @@
 """Shared tool schema for LLM function calling."""
 
 from __future__ import annotations
+from core.skills_loader import get_skill_declarations
 
 TOOL_DECLARATIONS = [
     {
@@ -134,7 +135,7 @@ TOOL_DECLARATIONS = [
             "required": ["command"],
         },
     },
-]
+] + get_skill_declarations()
 
 SYSTEM_INSTRUCTION = (
     "You are Jarvis, a local PC assistant. When the user wants a real computer action, "
