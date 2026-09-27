@@ -26,6 +26,7 @@ function relativeTime(ts) {
  * props, along with callbacks for the user actions.
  */
 function Sidebar({
+  open,
   mode,
   onModeChange,
   chats,
@@ -34,7 +35,7 @@ function Sidebar({
   onSelectChat,
 }) {
   return (
-    <div className="sidebar">
+    <div className={'sidebar' + (open ? ' open' : '')}>
       <div className="sidebar-switcher">
         {Object.entries(MODES).map(([key, label]) => (
           <button

@@ -23,6 +23,7 @@ function ChatWindow({
   onProviderChange,
   onToggleToolPanel,
   toolPanelOpen,
+  onOpenSidebar,
 }) {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -84,19 +85,30 @@ function ChatWindow({
   return (
     <div className="chatwindow">
       <header className="chatwindow-header">
-        <label className="chatwindow-provider">
-          Provider:
-          <select
-            value={provider}
-            onChange={(e) => onProviderChange(e.target.value)}
+        <div className="chatwindow-header-left">
+          {/* Only shown below the mobile breakpoint (see App.css) — desktop
+              keeps the sidebar visible so there's nothing to open. */}
+          <button
+            className="chatwindow-menubtn"
+            onClick={onOpenSidebar}
+            aria-label="Open sidebar"
           >
-            {PROVIDERS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </label>
+            ☰
+          </button>
+          <label className="chatwindow-provider">
+            Provider:
+            <select
+              value={provider}
+              onChange={(e) => onProviderChange(e.target.value)}
+            >
+              {PROVIDERS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <button
           className="chatwindow-tooltoggle"
           onClick={onToggleToolPanel}

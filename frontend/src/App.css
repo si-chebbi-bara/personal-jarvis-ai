@@ -59,3 +59,23 @@
 .layout > * {
   min-width: 0;
 }
+
+/*
+ * Below this width there's no room for a fixed 260px rail plus chat plus a
+ * 420px tool panel — collapse to a single column and let Sidebar/ToolPanel
+ * turn themselves into off-canvas overlays instead (see their own CSS).
+ */
+@media (max-width: 860px) {
+  .layout,
+  .layout.has-tool {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Dims the chat behind an open sidebar drawer; tapping it closes the drawer. */
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 30;
+  }
+}

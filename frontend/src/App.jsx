@@ -6,6 +6,7 @@ import ChatWindow from './components/ChatWindow'
 import ToolPanel from './components/ToolPanel'
 
 const STORAGE_KEY = 'jarvis.chats'
+const ACTIVE_CHAT_KEY = 'jarvis.activeChatId'
 const TITLE_MAX = 40
 const HEALTH_RECHECK_MS = 5000
 const HEALTH_TIMEOUT_MS = 4000
@@ -44,6 +45,18 @@ function loadChats() {
     return Array.isArray(parsed) ? parsed : []
   } catch {
     return []
+  }
+}
+
+// Restore the chat that was open before a reload. Only trust the stored id if
+// it still points at a real chat — a stale id (from a chat that no longer
+// exists) should fall back to "no chat selected", not a blank crash.
+function loadActiveChatId(chats) {
+  try {
+    const id = localStorage.getItem(ACTIVE_CHAT_KEY)
+    return id && chats.some((c) => c.id === id) ? id : null
+  } catch {
+    return null
   }
 }
 
@@ -106,10 +119,13 @@ function App() {
   const backendStatus = useBackendStatus()
   const [mode, setMode] = useState('manual')
   const [chats, setChats] = useState(loadChats)
-  const [activeChatId, setActiveChatId] = useState(null)
+  const [activeChatId, setActiveChatId] = useState(() => loadActiveChatId(loadChats()))
   const [provider, setProvider] = useState('auto')
   const [toolPanelOpen, setToolPanelOpen] = useState(false)
   const [activeTool, setActiveTool] = useState('terminal')
+  // Off-canvas sidebar toggle, only relevant below the mobile breakpoint (see
+  // App.css) — on desktop the sidebar is always visible and this is unused.
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // Persist on every change — localStorage is the only store of chat history.
   useEffect(() => {
@@ -119,6 +135,17 @@ function App() {
       // Storage full or blocked (private mode) — nothing useful to do.
     }
   }, [chats])
+
+  // Remember which chat was open so a reload lands back on it instead of the
+  // empty state.
+  useEffect(() => {
+    try {
+      if (activeChatId) localStorage.setItem(ACTIVE_CHAT_KEY, activeChatId)
+      else localStorage.removeItem(ACTIVE_CHAT_KEY)
+    } catch {
+      // Storage full or blocked (private mode) — nothing useful to do.
+    }
+  }, [activeChatId])
 
   const activeChat = chats.find((c) => c.id === activeChatId) || null
 
@@ -154,13 +181,28 @@ function App() {
       )}
       <div className={'layout' + (toolPanelOpen ? ' has-tool' : '')}>
         <Sidebar
+          open={sidebarOpen}
           mode={mode}
           onModeChange={setMode}
           chats={chats}
           activeChatId={activeChatId}
-          onNewChat={newChat}
-          onSelectChat={setActiveChatId}
+          onNewChat={() => {
+            newChat()
+            setSidebarOpen(false)
+          }}
+          onSelectChat={(id) => {
+            setActiveChatId(id)
+            setSidebarOpen(false)
+          }}
         />
+        {/* Mobile only (see App.css) — dims the chat behind the open drawer
+            and closes it on tap, same as the hamburger button. */}
+        {sidebarOpen && (
+          <div
+            className="sidebar-backdrop"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
         <ChatWindow
           // Remount on chat switch so the composer draft and in-flight state
           // never leak from one conversation into another.
@@ -171,6 +213,7 @@ function App() {
           onProviderChange={setProvider}
           toolPanelOpen={toolPanelOpen}
           onToggleToolPanel={() => setToolPanelOpen((v) => !v)}
+          onOpenSidebar={() => setSidebarOpen(true)}
         />
         {toolPanelOpen && (
           <ToolPanel

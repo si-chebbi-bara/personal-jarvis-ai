@@ -127,3 +127,19 @@
   color: var(--text);
   font-style: italic;
 }
+
+/*
+ * Below the mobile breakpoint there's no 3rd grid column (see App.css) — the
+ * panel overlays the full screen instead of squeezing chat down to nothing.
+ */
+@media (max-width: 860px) {
+  .toolpanel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 35;
+    border-left: none;
+  }
+}
