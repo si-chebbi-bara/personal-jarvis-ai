@@ -22,6 +22,6 @@ Known issues hit during development, and their fixes. If something breaks, check
 
 ## Known limitations
 
-- **Windows**: `actions/system.py` was originally Linux-only (`xdg-open`, `wpctl`/`pactl`/`amixer`, `flameshot`/`gnome-screenshot`/`grim`). A cross-platform fix for `open_app`, `open_website`, `take_screenshot`, and `get_system_stats` has been written — check `Tasks/Windows compatibility fix.md` in the Obsidian vault for current status. `set_volume` has no Windows implementation yet.
+- **Windows**: `actions/system.py` is currently Linux-only in practice (`xdg-open`, `wpctl`/`pactl`/`amixer`, `flameshot`/`gnome-screenshot`/`grim`) — it has no platform checks. Windows compatibility fixes for `open_app`, `open_website`, `take_screenshot`, and `get_system_stats` are drafted (see `Tasks/Windows compatibility fix.md` in the Obsidian vault) but NOT YET applied to `actions/system.py` in this repo. `set_volume` has no Windows implementation drafted at all.
 - **Selenium/Chrome browser automation** was tried and abandoned (profile-lock crashes, snap conflicts) — considered out of scope.
 - `google.generativeai` (used in `core/llm_brain.py`) is deprecated in favor of `google-genai` — still works, migration not yet done.

@@ -1,7 +1,13 @@
 """Shared tool schema for LLM function calling."""
 
 from __future__ import annotations
+
+import os
+
 from core.skills_loader import get_skill_declarations
+
+# Absolute, so read_file finds it regardless of the process's working directory.
+TROUBLESHOOTING_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "TROUBLESHOOTING.md")
 
 TOOL_DECLARATIONS = [
     {
@@ -142,6 +148,6 @@ SYSTEM_INSTRUCTION = (
     "you MUST call the matching tool instead of only describing it. "
     "Use open_app with app_name 'notepad' when they want a text editor. "
     "If they are just chatting, reply briefly with no tool. "
-    "If a tool call fails with an error, use read_file to check TROUBLESHOOTING.md for a "
-    "matching known issue before just reporting the raw error to the user."
+    f"If a tool call fails with an error, use read_file with path '{TROUBLESHOOTING_PATH}' to check "
+    "for a matching known issue before just reporting the raw error to the user."
 )
