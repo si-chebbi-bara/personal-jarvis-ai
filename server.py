@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from actions.system import run_shell_command
 from core.llm_brain import handle
 
 app = FastAPI(title="Jarvis API")
@@ -28,6 +29,11 @@ class CommandRequest(BaseModel):
     provider: str | None = None  # "auto" / None -> automatic selection
 
 
+class ShellRequest(BaseModel):
+    command: str
+    timeout: int = 30
+
+
 @app.get("/")
 def root():
     return {"status": "ok", "service": "jarvis", "endpoint": "POST /api/command"}
@@ -37,3 +43,9 @@ def root():
 def run_command(req: CommandRequest):
     result = handle(req.command, forced_provider=req.provider)
     return result
+
+
+@app.post("/api/shell")
+def run_shell(req: ShellRequest):
+    """Direct shell access, bypassing the LLM. Same blocklist/timeout/logging as the tool-call path."""
+    return run_shell_command(req.command, timeout=req.timeout)

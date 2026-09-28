@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as _dt
+import re
 import shutil
 import subprocess
 import tempfile
@@ -35,6 +36,7 @@ SKIP_DIR_NAMES = {
 }
 
 MAX_FILE_BYTES = 200_000
+MAX_SHELL_OUTPUT_CHARS = 4_000
 
 
 def _ok(message: str) -> dict:
@@ -432,6 +434,130 @@ def read_file(path: str) -> dict:
         return _ok(f"Contents of {target}:\n{text}")
     except Exception as exc:
         return _fail(f"Could not read file '{path}': {exc}")
+
+
+# --- run_shell_command support -------------------------------------------
+
+SHELL_LOG_PATH = Path(__file__).resolve().parent.parent / "logs" / "shell.log"
+
+# (regex, human-readable reason) pairs, checked case-insensitively against the
+# raw command string. Each targets a class of command that's easy to trigger
+# by accident (or by a misfiring LLM tool call) and hard or impossible to
+# undo — this is a blocklist, not a sandbox, so it only has to catch the
+# common, obviously destructive cases.
+SHELL_BLOCKLIST_PATTERNS = [
+    (r"rm\s+-[a-z]*r[a-z]*f|rm\s+-[a-z]*f[a-z]*r", "recursive/force delete (rm -rf)"),
+    (r"\bsudo\b", "privilege escalation (sudo)"),
+    (r"\bmkfs(\.\w+)?\b", "filesystem format (mkfs)"),
+    (r"\bdd\s+if=", "raw disk write (dd if=...)"),
+    (r":\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:", "fork bomb"),
+    (r"\b(shutdown|reboot|halt|poweroff)\b", "system shutdown/reboot"),
+    (r"(curl|wget)[^\n]*\|\s*(sudo\s+)?(sh|bash|zsh)\b", "pipe a remote script into a shell"),
+    (r"[>]{1,2}\s*/(etc|boot|sys)(/|\s|$)", "write into a protected system path"),
+]
+
+
+def _blocklist_reason(command: str) -> str | None:
+    """Return why `command` is blocked, or None if it's allowed to run."""
+    lowered = command.lower()
+    for pattern, reason in SHELL_BLOCKLIST_PATTERNS:
+        if re.search(pattern, lowered):
+            return reason
+    return None
+
+
+def _truncate(text: str) -> str:
+    """Cap captured stdout/stderr so one runaway command can't bloat a response."""
+    if len(text) <= MAX_SHELL_OUTPUT_CHARS:
+        return text
+    return text[:MAX_SHELL_OUTPUT_CHARS] + f"\n... (truncated, {len(text)} chars total)"
+
+
+def _shell_result(success: bool, message: str, output: str = "", error: str = "") -> dict:
+    """Build the {success, message, output, error} shape run_shell_command always returns."""
+    return {"success": success, "message": message, "output": output, "error": error}
+
+
+def _log_shell_attempt(command: str, success: bool, detail: str = "") -> None:
+    """Append one audit line to logs/shell.log. Never raises — logging must not break execution."""
+    try:
+        SHELL_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        stamp = _dt.datetime.now().isoformat(timespec="seconds")
+        status = "OK" if success else "REJECTED/FAILED"
+        line = f"[{stamp}] {status} | {command!r}"
+        if detail:
+            line += f" | {detail}"
+        with SHELL_LOG_PATH.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+    except Exception:
+        pass
+
+
+def run_shell_command(command: str, timeout: int = 30) -> dict:
+    """Run a shell command and return its output.
+
+    Runs with the assistant's own OS privileges — there is no sandboxing, so a
+    command that reaches subprocess.run() can do anything the current user
+    could do from a real terminal. Three layers keep that safe enough for a
+    personal assistant:
+
+      1. Blocklist  — obviously destructive patterns (rm -rf, sudo, mkfs, dd,
+         fork bombs, shutdown/reboot, curl|bash, writes into /etc /boot /sys)
+         are rejected before subprocess.run() is ever called.
+      2. Timeout    — a hung command (or one that reads stdin forever) is
+         killed after `timeout` seconds instead of blocking the caller.
+      3. Audit log  — every attempt, accepted or rejected, is appended to
+         logs/shell.log with its outcome, so there's a record of what ran.
+    """
+    cmd = (command or "").strip()
+    if not cmd:
+        return _shell_result(False, "No command was given.")
+
+    reason = _blocklist_reason(cmd)
+    if reason:
+        _log_shell_attempt(cmd, success=False, detail=f"blocked: {reason}")
+        return _shell_result(
+            False,
+            f"Refused to run this command — it matches a blocked pattern ({reason}).",
+            error=f"blocked: {reason}",
+        )
+
+    try:
+        # shell=True is required so the user can type normal shell syntax
+        # (pipes, redirects, globs) — that's also exactly why the blocklist
+        # above has to run first.
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        _log_shell_attempt(cmd, success=False, detail=f"timed out after {timeout}s")
+        return _shell_result(
+            False,
+            f"Command timed out after {timeout}s and was killed: {cmd}",
+            error=f"timeout after {timeout}s",
+        )
+    except Exception as exc:
+        _log_shell_attempt(cmd, success=False, detail=f"exception: {exc}")
+        return _shell_result(False, f"run_shell_command failed: {exc}", error=str(exc))
+
+    stdout = _truncate(result.stdout or "")
+    stderr = _truncate(result.stderr or "")
+    success = result.returncode == 0
+    _log_shell_attempt(cmd, success=success, detail=f"exit code {result.returncode}")
+
+    if success:
+        return _shell_result(True, stdout.strip() or f"Command completed with no output: {cmd}", stdout, stderr)
+    return _shell_result(
+        False,
+        f"Command exited with code {result.returncode}.\n{stderr.strip() or stdout.strip()}",
+        stdout,
+        stderr,
+    )
 
 
 if __name__ == "__main__":
