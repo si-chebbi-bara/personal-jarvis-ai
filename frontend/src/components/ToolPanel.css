@@ -21,17 +21,6 @@
   color: var(--text-h);
 }
 
-.toolpanel-preview-tag {
-  padding: 1px 6px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
-  border-radius: 999px;
-}
-
 .toolpanel-switch {
   display: flex;
   gap: 2px;
@@ -75,57 +64,149 @@
 
 .toolpanel-body {
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding: 12px;
 }
 
-/* Terminal view — always dark, regardless of colour scheme. */
+.toolpanel-idle {
+  color: var(--text);
+  font-style: italic;
+}
+
+/* --- Activity tab: real tool-call feed from core/executor.py --- */
+
+.toolpanel-activity {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.activity-item {
+  padding: 8px 10px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.activity-item.failed {
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.activity-item-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.activity-tool {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.activity-args {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-time {
+  font-size: 11px;
+  color: var(--text);
+  flex: none;
+}
+
+.activity-message {
+  color: var(--text-h);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.activity-item.failed .activity-message {
+  color: #b91c1c;
+}
+
+/* --- Terminal tab: real POST /api/shell, always dark regardless of theme --- */
+
+.toolpanel-terminal-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #171717;
+}
+
 .toolpanel-terminal {
+  flex: 1;
+  min-height: 0;
   margin: 0;
-  height: 100%;
   padding: 12px;
   overflow: auto;
   font-family: var(--mono);
   font-size: 13px;
   line-height: 1.5;
   color: #d4d4d4;
-  background: #171717;
-  border-radius: 8px;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-.toolpanel-browser {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.toolpanel-addressbar {
-  padding: 8px 12px;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text);
-  background: var(--code-bg);
-  border-bottom: 1px solid var(--border);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.toolpanel-browser-content {
-  flex: 1;
-  padding: 16px;
-  overflow: auto;
-  color: var(--text-h);
-}
-
-.toolpanel-idle {
-  color: var(--text);
+.toolpanel-terminal-hint {
+  color: #737373;
   font-style: italic;
+}
+
+.terminal-line {
+  margin-bottom: 10px;
+}
+
+.terminal-line.failed > div:first-child {
+  color: #f87171;
+}
+
+.terminal-output {
+  color: #d4d4d4;
+}
+
+.terminal-stderr {
+  color: #f87171;
+}
+
+.toolpanel-terminal-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid #2a2a2a;
+}
+
+.toolpanel-terminal-prompt {
+  color: #737373;
+  font-family: var(--mono);
+}
+
+.toolpanel-terminal-input input {
+  flex: 1;
+  padding: 4px 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: #f5f5f5;
+  background: transparent;
+  border: none;
+  outline: none;
 }
 
 /*

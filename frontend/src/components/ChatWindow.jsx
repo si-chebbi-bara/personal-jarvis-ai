@@ -24,6 +24,7 @@ function ChatWindow({
   onToggleToolPanel,
   toolPanelOpen,
   onOpenSidebar,
+  onToolActivity,
 }) {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -61,6 +62,10 @@ function ChatWindow({
           ok: data.success,
         },
       ])
+      // Surface real tool calls (open_app, run_shell_command, etc.) in the
+      // tool panel's Activity tab — only present when the executor actually
+      // ran something, per core/executor.py.
+      onToolActivity(data.calls)
     } catch (err) {
       // A plain fetch TypeError ("NetworkError...", "Failed to fetch") means
       // the request never reached a server at all — almost always the
@@ -114,7 +119,7 @@ function ChatWindow({
           onClick={onToggleToolPanel}
           aria-pressed={toolPanelOpen}
         >
-          {toolPanelOpen ? 'Hide tool panel' : 'Preview tool panel'}
+          {toolPanelOpen ? 'Hide tool panel' : 'Open tool panel'}
         </button>
       </header>
 

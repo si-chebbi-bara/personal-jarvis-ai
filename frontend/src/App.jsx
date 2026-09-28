@@ -10,25 +10,7 @@ const ACTIVE_CHAT_KEY = 'jarvis.activeChatId'
 const TITLE_MAX = 40
 const HEALTH_RECHECK_MS = 5000
 const HEALTH_TIMEOUT_MS = 4000
-
-// Hard-coded sample content for the tool panel. The backend does not report
-// tool activity yet; this stands in for a future event payload of the same
-// shape ({ lines } for terminal, { url, body } for browser).
-const MOCK_TOOL_CONTENT = {
-  terminal: {
-    lines: [
-      '$ jarvis run "check disk space"',
-      'Filesystem      Size  Used Avail Use% Mounted on',
-      '/dev/nvme0n1p2  467G  312G  132G  71% /',
-      '',
-      '✓ done in 0.4s',
-    ],
-  },
-  browser: {
-    url: 'https://example.com/search?q=weather+today',
-    body: 'Rendered page content would appear here.',
-  },
-}
+const MAX_ACTIVITY = 50
 
 const makeChat = () => ({
   id: crypto.randomUUID(),
@@ -122,10 +104,21 @@ function App() {
   const [activeChatId, setActiveChatId] = useState(() => loadActiveChatId(loadChats()))
   const [provider, setProvider] = useState('auto')
   const [toolPanelOpen, setToolPanelOpen] = useState(false)
-  const [activeTool, setActiveTool] = useState('terminal')
+  const [activeTool, setActiveTool] = useState('activity')
   // Off-canvas sidebar toggle, only relevant below the mobile breakpoint (see
   // App.css) — on desktop the sidebar is always visible and this is unused.
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  // Real record of tool calls Jarvis has actually run via chat (open_app,
+  // run_shell_command, etc.) — fed by ChatWindow from /api/command's `calls`
+  // field. Global rather than per-chat: it's "what Jarvis has been doing",
+  // not part of any one conversation's transcript.
+  const [toolActivity, setToolActivity] = useState([])
+
+  function addToolActivity(calls) {
+    if (!calls || !calls.length) return
+    const stamped = calls.map((c) => ({ ...c, ts: Date.now() }))
+    setToolActivity((prev) => [...prev, ...stamped].slice(-MAX_ACTIVITY))
+  }
 
   // Persist on every change — localStorage is the only store of chat history.
   useEffect(() => {
@@ -214,11 +207,12 @@ function App() {
           toolPanelOpen={toolPanelOpen}
           onToggleToolPanel={() => setToolPanelOpen((v) => !v)}
           onOpenSidebar={() => setSidebarOpen(true)}
+          onToolActivity={addToolActivity}
         />
         {toolPanelOpen && (
           <ToolPanel
             activeTool={activeTool}
-            content={MOCK_TOOL_CONTENT[activeTool]}
+            activity={toolActivity}
             onSelectTool={setActiveTool}
             onClose={() => setToolPanelOpen(false)}
           />

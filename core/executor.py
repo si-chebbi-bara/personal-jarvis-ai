@@ -70,18 +70,43 @@ def execute(decision: dict) -> dict:
 
         messages = []
         all_ok = True
+        # Structured per-call record, alongside the joined `message` string
+        # kept above for backward compatibility (CLI/GUI just print message).
+        # The frontend's tool panel uses this to show what actually ran,
+        # instead of a hardcoded mock.
+        call_log = []
         for call in calls:
             name = call.get("tool") or call.get("name")
+            arguments = call.get("arguments") or {}
             func = TOOLS.get(name)
             if func is None:
                 all_ok = False
-                messages.append(f"Unknown tool: {name}")
+                text = f"Unknown tool: {name}"
+                messages.append(text)
+                call_log.append(
+                    {"tool": name, "arguments": arguments, "success": False, "message": text}
+                )
                 continue
-            result = func(**_filter_args(func, call.get("arguments") or {}))
-            if not result.get("success"):
+            result = func(**_filter_args(func, arguments))
+            ok = bool(result.get("success"))
+            if not ok:
                 all_ok = False
-            messages.append(result.get("message") or str(result))
+            text = result.get("message") or str(result)
+            messages.append(text)
+            call_log.append(
+                {
+                    "tool": name,
+                    "arguments": arguments,
+                    "success": ok,
+                    "message": text,
+                    # run_shell_command's raw stdout/stderr, when present — the
+                    # joined `message` above already folds stdout in, but the
+                    # tool panel wants stdout/stderr split for a terminal view.
+                    "output": result.get("output"),
+                    "error": result.get("error"),
+                }
+            )
 
-        return {"success": all_ok, "message": "\n".join(messages)}
+        return {"success": all_ok, "message": "\n".join(messages), "calls": call_log}
     except Exception as exc:
         return {"success": False, "message": f"Executor failed: {exc}"}
