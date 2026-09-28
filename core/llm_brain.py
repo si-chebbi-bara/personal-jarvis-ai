@@ -19,10 +19,8 @@ ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 
 GEMINI_MODELS = (
-    "gemini-2.5-flash",
     "gemini-flash-latest",
     "gemini-3.5-flash",
-    "gemini-2.5-flash-lite",
 )
 
 CLAUDE_MODEL = "claude-sonnet-4-20250514"
