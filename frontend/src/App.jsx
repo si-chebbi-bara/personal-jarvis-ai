@@ -221,6 +221,7 @@ function App() {
           // Remount on chat switch so the composer draft and in-flight state
           // never leak from one conversation into another.
           key={chatViewKey}
+          mode={mode}
           messages={activeChat ? activeChat.messages : []}
           onAppendMessages={appendMessages}
           provider={provider}

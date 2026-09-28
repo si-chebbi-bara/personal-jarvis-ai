@@ -25,6 +25,9 @@ GEMINI_MODELS = (
     "gemini-2.5-flash-lite",
 )
 
+CLAUDE_MODEL = "claude-sonnet-4-20250514"
+OPENAI_MODEL = "gpt-4o-mini"
+
 COMPLEX_HINTS = (
     "explain",
     "analyze",
@@ -204,10 +207,7 @@ def _normalize_gemini(response, model_name: str) -> dict:
     return {"success": True, "provider": "gemini", "model": model_name, "text": message}
 
 
-def _from_claude(command: str) -> dict:
-    import anthropic
-
-    client = anthropic.Anthropic(api_key=_key("ANTHROPIC_API_KEY"))
+def _claude_tools() -> list[dict]:
     tools = []
     for decl in TOOL_DECLARATIONS:
         tools.append(
@@ -217,11 +217,18 @@ def _from_claude(command: str) -> dict:
                 "input_schema": decl.get("parameters") or {"type": "object", "properties": {}},
             }
         )
+    return tools
+
+
+def _from_claude(command: str) -> dict:
+    import anthropic
+
+    client = anthropic.Anthropic(api_key=_key("ANTHROPIC_API_KEY"))
     message = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model=CLAUDE_MODEL,
         max_tokens=1024,
         system=SYSTEM_INSTRUCTION,
-        tools=tools,
+        tools=_claude_tools(),
         messages=[{"role": "user", "content": command}],
     )
     calls = []
@@ -246,7 +253,7 @@ def _from_openai(command: str) -> dict:
 
     client = OpenAI(api_key=_key("OPENAI_API_KEY"))
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=OPENAI_MODEL,
         messages=[
             {"role": "system", "content": SYSTEM_INSTRUCTION},
             {"role": "user", "content": command},

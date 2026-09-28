@@ -4,11 +4,16 @@ Pure JSON API — the user interface is the separate React app in frontend/.
 Run with:  uvicorn server:app --host 0.0.0.0 --port 8000
 """
 
-from fastapi import FastAPI
+import json
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 
 from actions.system import run_shell_command
+from core.agent_loop import run_auto
 from core.llm_brain import handle
 
 app = FastAPI(title="Jarvis API")
@@ -43,6 +48,35 @@ def root():
 def run_command(req: CommandRequest):
     result = handle(req.command, forced_provider=req.provider)
     return result
+
+
+@app.post("/api/command/auto")
+async def run_command_auto(req: CommandRequest, request: Request):
+    """Automatic mode: stream the agent loop's progress as Server-Sent Events.
+
+    One `data: {...}` event per step (see core/agent_loop.py for the shapes),
+    ending with a `final` event. Closing the connection (the UI's Stop button)
+    stops the loop before its next provider or tool call.
+    """
+    events = run_auto(req.command, forced_provider=req.provider)
+
+    async def stream():
+        try:
+            while not await request.is_disconnected():
+                # Each step blocks on an LLM or tool call, so run it off the
+                # event loop; this also lets us check for a disconnect between steps.
+                event = await run_in_threadpool(next, events, None)
+                if event is None:
+                    break
+                yield f"data: {json.dumps(event, default=str)}\n\n"
+        finally:
+            events.close()
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/api/shell")
