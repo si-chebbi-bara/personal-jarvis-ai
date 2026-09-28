@@ -14,7 +14,9 @@ const ROLE_LABEL = { user: 'You', error: 'Error' }
  * is NOT local state any more — it is owned by App.jsx (so switching chats in
  * the sidebar swaps the conversation) and arrives via props:
  *   - messages          the active chat's messages
- *   - onAppendMessages  append one or more messages to the active chat
+ *   - onAppendMessages  append one or more messages to the active chat (or to
+ *                       the chat id passed as its second argument); returns
+ *                       the id of the chat it appended to
  */
 function ChatWindow({
   messages,
@@ -40,7 +42,7 @@ function ChatWindow({
     const command = input.trim()
     if (!command || busy) return
 
-    onAppendMessages([{ role: 'user', text: command }])
+    const chatId = onAppendMessages([{ role: 'user', text: command }])
     setInput('')
     setBusy(true)
 
@@ -61,7 +63,7 @@ function ChatWindow({
           provider: data.provider,
           ok: data.success,
         },
-      ])
+      ], chatId)
       // Surface real tool calls (open_app, run_shell_command, etc.) in the
       // tool panel's Activity tab — only present when the executor actually
       // ran something, per core/executor.py.
@@ -74,7 +76,7 @@ function ChatWindow({
         err instanceof TypeError
           ? `Can't reach the Jarvis backend at ${API_BASE} — make sure "uvicorn server:app" is running.`
           : `Could not reach Jarvis: ${err.message}`
-      onAppendMessages([{ role: 'error', text }])
+      onAppendMessages([{ role: 'error', text }], chatId)
     } finally {
       setBusy(false)
     }

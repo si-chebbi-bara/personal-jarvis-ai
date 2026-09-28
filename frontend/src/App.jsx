@@ -102,6 +102,7 @@ function App() {
   const [mode, setMode] = useState('manual')
   const [chats, setChats] = useState(loadChats)
   const [activeChatId, setActiveChatId] = useState(() => loadActiveChatId(loadChats()))
+  const [chatViewKey, setChatViewKey] = useState(0)
   const [provider, setProvider] = useState('auto')
   const [toolPanelOpen, setToolPanelOpen] = useState(false)
   const [activeTool, setActiveTool] = useState('activity')
@@ -145,21 +146,41 @@ function App() {
   function newChat() {
     const chat = makeChat()
     setChats((prev) => [chat, ...prev])
-    setActiveChatId(chat.id)
+    switchChat(chat.id)
   }
 
-  // Append message(s) to the active chat, creating one first if none is active
-  // (e.g. typing straight after a fresh page load). Newest chat sorts first.
-  function appendMessages(added) {
-    const target = activeChat || makeChat()
-    if (!activeChat) setActiveChatId(target.id)
+  // Append message(s) to a chat and return that chat's id. With no chatId it
+  // targets the active chat, creating one first if none is active (e.g. typing
+  // straight after a fresh page load). Anything appended after an await (a
+  // reply, Automatic mode's streamed steps) must pass back the id the first
+  // call returned: the caller's `onAppendMessages` is from the render it
+  // started in, where `activeChat` may still be null, so relying on it would
+  // split one exchange across two chats. Newest chat sorts first.
+  function appendMessages(added, chatId) {
+    let targetId = chatId || (activeChat && activeChat.id)
+    let fresh = null
+    if (!targetId) {
+      fresh = makeChat()
+      targetId = fresh.id
+      setActiveChatId(targetId)
+    }
 
     setChats((prev) => {
-      const list = prev.some((c) => c.id === target.id) ? prev : [target, ...prev]
+      const list = fresh ? [fresh, ...prev] : prev
       return list
-        .map((c) => (c.id === target.id ? withMessages(c, added) : c))
+        .map((c) => (c.id === targetId ? withMessages(c, added) : c))
         .sort((a, b) => b.updatedAt - a.updatedAt)
     })
+    return targetId
+  }
+
+  // Explicit chat switches remount ChatWindow (see its `key`); a chat created
+  // by sending the first message must not, or the in-flight request would
+  // lose its busy indicator (and Automatic mode its Stop button).
+  function switchChat(id) {
+    if (id === activeChatId) return
+    setActiveChatId(id)
+    setChatViewKey((k) => k + 1)
   }
 
   return (
@@ -184,7 +205,7 @@ function App() {
             setSidebarOpen(false)
           }}
           onSelectChat={(id) => {
-            setActiveChatId(id)
+            switchChat(id)
             setSidebarOpen(false)
           }}
         />
@@ -199,7 +220,7 @@ function App() {
         <ChatWindow
           // Remount on chat switch so the composer draft and in-flight state
           // never leak from one conversation into another.
-          key={activeChatId || 'no-chat'}
+          key={chatViewKey}
           messages={activeChat ? activeChat.messages : []}
           onAppendMessages={appendMessages}
           provider={provider}
