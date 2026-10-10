@@ -22,3 +22,7 @@ SpeechRecognition
 fastapi
 uvicorn
 requests
+
+# Security (auth)
+bcrypt
+pyjwt
