@@ -18,6 +18,7 @@ from actions.system import (
     set_volume,
     take_screenshot,
 )
+from core.skills_loader import load_skills
 
 TOOLS = {
     "open_app": open_app,
@@ -33,6 +34,7 @@ TOOLS = {
     "read_file": read_file,
     "run_shell_command": run_shell_command,
 }
+TOOLS.update({name: skill["run"] for name, skill in load_skills().items()})
 
 
 def _filter_args(func, arguments: dict) -> dict:

@@ -21,3 +21,4 @@ SpeechRecognition
 # pyautogui
 fastapi
 uvicorn
+requests
