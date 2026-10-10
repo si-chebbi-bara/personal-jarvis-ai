@@ -15,12 +15,19 @@ DEFAULT_CONTENT = """# Jarvis Memory
 
 def _ensure_file():
     if not MEMORY_FILE.exists():
-        MEMORY_FILE.write_text(DEFAULT_CONTENT)
+        MEMORY_FILE.write_text(DEFAULT_CONTENT, encoding="utf-8")
 
 
 def _read_sections():
     _ensure_file()
-    text = MEMORY_FILE.read_text()
+    raw = MEMORY_FILE.read_bytes()
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        # Older versions wrote with the OS default encoding, which is cp1252 on
+        # Windows (e.g. a "°C" from the weather skill), and crashed on Linux.
+        text = raw.decode("cp1252", errors="replace")
+    text = text.replace("\r\n", "\n")
 
     facts_match = re.search(r"## Facts about Bara\n(.*?)(?=\n## |\Z)", text, re.DOTALL)
     log_match = re.search(r"## Recent conversation\n(.*?)\Z", text, re.DOTALL)
@@ -83,4 +90,4 @@ def _write(facts: str, log: str):
 ## Recent conversation
 {log}
 """
-    MEMORY_FILE.write_text(content)
+    MEMORY_FILE.write_text(content, encoding="utf-8")

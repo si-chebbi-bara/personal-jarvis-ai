@@ -113,13 +113,10 @@
   color: #737373;
 }
 
-.sidebar-automatic-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 24px;
-  text-align: center;
+.sidebar-mode-hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
   color: #a3a3a3;
 }
 

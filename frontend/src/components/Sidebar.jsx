@@ -49,42 +49,43 @@ function Sidebar({
       </div>
 
       <div className="sidebar-body">
-        {mode === 'manual' ? (
-          <>
-            <button className="sidebar-newchat" onClick={onNewChat}>
-              + New chat
-            </button>
-
-            <div className="sidebar-section-label">Recent</div>
-            <ul className="sidebar-recent">
-              {chats.length === 0 && (
-                <li className="sidebar-recent-empty">No chats yet</li>
-              )}
-              {chats.map((chat) => (
-                <li key={chat.id}>
-                  <button
-                    className={
-                      'sidebar-recent-item' +
-                      (chat.id === activeChatId ? ' active' : '')
-                    }
-                    onClick={() => onSelectChat(chat.id)}
-                  >
-                    <span className="sidebar-recent-title">
-                      {chat.title || 'New chat'}
-                    </span>
-                    <span className="sidebar-recent-time">
-                      {relativeTime(chat.updatedAt)}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : (
-          <div className="sidebar-automatic-placeholder">
-            Automatic mode is coming soon.
-          </div>
+        {/* Chats are shared by both modes — an Automatic run is saved as a
+            normal chat, with each step inline. */}
+        {mode === 'automatic' && (
+          <p className="sidebar-mode-hint">
+            Give Jarvis a goal: it chains up to 8 tool calls on its own, each
+            shown as it runs. Press Stop to cancel. Needs Gemini, Claude, or
+            OpenAI.
+          </p>
         )}
+        <button className="sidebar-newchat" onClick={onNewChat}>
+          + New chat
+        </button>
+
+        <div className="sidebar-section-label">Recent</div>
+        <ul className="sidebar-recent">
+          {chats.length === 0 && (
+            <li className="sidebar-recent-empty">No chats yet</li>
+          )}
+          {chats.map((chat) => (
+            <li key={chat.id}>
+              <button
+                className={
+                  'sidebar-recent-item' +
+                  (chat.id === activeChatId ? ' active' : '')
+                }
+                onClick={() => onSelectChat(chat.id)}
+              >
+                <span className="sidebar-recent-title">
+                  {chat.title || 'New chat'}
+                </span>
+                <span className="sidebar-recent-time">
+                  {relativeTime(chat.updatedAt)}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="sidebar-footer">

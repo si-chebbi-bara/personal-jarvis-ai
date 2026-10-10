@@ -225,3 +225,37 @@
     row-gap: 8px;
   }
 }
+
+/* Automatic mode's inline lines: one per tool call ("→ ran …") and notes like
+   "Stopped". Deliberately not bubbles, so a long run stays scannable. */
+.msg.step,
+.msg.note {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 0 12px;
+  border-radius: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.msg.step {
+  font-family: var(--mono);
+}
+
+.msg.step.failed {
+  color: #b91c1c;
+}
+
+.msg.note {
+  font-style: italic;
+}
+
+.chatwindow-composer button.stop {
+  background: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+  .msg.step.failed {
+    color: #f5b5b5;
+  }
+}
