@@ -25,3 +25,6 @@ desktop.ini
 
 # Jarvis runtime state (auto-created from a blank template by core/memory.py)
 memory.md
+
+# Local Claude Code settings (per-machine, not project code)
+.claude/
