@@ -38,7 +38,7 @@ from core.llm_brain import (
     handle,
 )
 from core.memory import get_context, log_exchange
-from core.tools import SYSTEM_INSTRUCTION, TOOL_DECLARATIONS
+from core.tools import SYSTEM_INSTRUCTION, get_gemini_tool_declarations
 
 MAX_ITERATIONS = 8
 
@@ -90,12 +90,13 @@ class _GeminiSession:
         # Same fallback order as llm_brain._from_gemini, but once a model has
         # answered, stick with it so the conversation stays on one model.
         names = [self.model_name] if self.model_name else list(GEMINI_MODELS)
+        declarations = get_gemini_tool_declarations()
         last_error = None
         for name in names:
             try:
                 model = self._genai.GenerativeModel(
                     model_name=name,
-                    tools=[{"function_declarations": TOOL_DECLARATIONS}],
+                    tools=[{"function_declarations": declarations}],
                     system_instruction=AUTO_INSTRUCTION,
                 )
                 response = model.generate_content(self.contents)

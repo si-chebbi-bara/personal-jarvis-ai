@@ -12,7 +12,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from core.tools import SYSTEM_INSTRUCTION, TOOL_DECLARATIONS
+from core.tools import SYSTEM_INSTRUCTION, get_all_tool_declarations, get_gemini_tool_declarations
 from core.memory import get_context, log_exchange
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -139,7 +139,7 @@ def get_action(command: str, forced_provider: str | None = None) -> dict:
 
 def _openai_style_tools() -> list[dict]:
     tools = []
-    for decl in TOOL_DECLARATIONS:
+    for decl in get_all_tool_declarations():
         tools.append(
             {
                 "type": "function",
@@ -157,12 +157,13 @@ def _from_gemini(command: str) -> dict:
     import google.generativeai as genai
 
     genai.configure(api_key=_key("GEMINI_API_KEY"))
+    declarations = get_gemini_tool_declarations()
     last_error = None
     for model_name in GEMINI_MODELS:
         try:
             model = genai.GenerativeModel(
                 model_name=model_name,
-                tools=[{"function_declarations": TOOL_DECLARATIONS}],
+                tools=[{"function_declarations": declarations}],
                 system_instruction=SYSTEM_INSTRUCTION,
             )
             response = model.generate_content(command)
@@ -207,7 +208,7 @@ def _normalize_gemini(response, model_name: str) -> dict:
 
 def _claude_tools() -> list[dict]:
     tools = []
-    for decl in TOOL_DECLARATIONS:
+    for decl in get_all_tool_declarations():
         tools.append(
             {
                 "name": decl["name"],
@@ -305,7 +306,7 @@ def _from_ollama(command: str) -> dict:
 
 
 def _ollama_json_hint() -> str:
-    names = ", ".join(d["name"] for d in TOOL_DECLARATIONS)
+    names = ", ".join(d["name"] for d in get_all_tool_declarations())
     return (
         "If you need a PC action, reply with ONLY JSON like "
         '{"tool":"open_app","arguments":{"app_name":"firefox"}} '
