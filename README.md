@@ -81,6 +81,45 @@ Then use the **Mic** button for a single command, or enable **Wake word** and sa
 
 Better Jarvis prefers Gemini for ordinary online requests. For more involved requests, it uses Claude when configured. If those are unavailable, it tries OpenAI, then local Ollama, and finally its built-in rules.
 
+## Adding an MCP server
+
+Jarvis is an [MCP](https://modelcontextprotocol.io/) client: it can use the tools of external MCP servers the same way it uses its built-in tools and skills, with every provider and in both Manual and Automatic mode. Each MCP tool appears as `<server>__<tool>` (for example `jarvis_test__add`).
+
+1. Copy the example config (your copy is gitignored, so pulling new code never overwrites it):
+
+   ```bash
+   cp mcp_servers.example.json mcp_servers.json
+   ```
+
+   On Windows PowerShell: `Copy-Item mcp_servers.example.json mcp_servers.json`
+
+2. Edit `mcp_servers.json`. It uses the standard `mcpServers` shape, so a config block copied from an MCP server's README works as-is. Jarvis also understands these optional fields per server:
+
+   | Field | Meaning |
+   |---|---|
+   | `enabled` | `false` to keep a server in the file without starting it (default `true`) |
+   | `platforms` | Only start on these OSes: `["linux"]`, `["windows"]`, `["darwin"]` |
+   | `allowed_tools` | Only expose these tool names from the server |
+   | `timeout` | Seconds per tool call (default 30) |
+   | `startup_timeout` | Seconds to connect (default 60; `npx -y` downloads on first run) |
+
+   Use `command` + `args` (+ `env`) for a local stdio server, or `url` (+ `headers`) for a Streamable HTTP server. `${VAR}` is filled in from your environment or `.env`, `~` means your home folder, and `"python"` always means the Python of the active venv.
+
+3. Restart Jarvis (`python main.py`, `python gui.py`, or the API server below). Config changes are only read at startup.
+
+4. Check what connected. With the API server running:
+
+   ```bash
+   uvicorn server:app --host 127.0.0.1 --port 8000
+   curl http://127.0.0.1:8000/api/mcp/status
+   ```
+
+   Each server shows `connected`, `failed` (with a short error), `disabled` or `skipped_platform`, plus its tool names.
+
+To check the whole MCP setup without touching your own config, run `python scripts/verify_mcp.py`. It uses a built-in test server and prints PASS/FAIL per check. Calls are logged to `logs/mcp.log`; see `TROUBLESHOOTING.md` if a server or tool is missing.
+
+**Security:** MCP servers run with your user permissions, and the `run_shell_command` blocklist does **not** apply to MCP tools. Only add servers you trust, and prefer `allowed_tools` and narrow paths (for example, point the filesystem server at one folder).
+
 ## Security note
 
 This project can execute actions on your computer. Review commands before running them and keep API keys only in `.env`.
