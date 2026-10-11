@@ -28,3 +28,6 @@ memory.md
 
 # Local Claude Code settings (per-machine, not project code)
 .claude/
+
+# Personal MCP server config (copy mcp_servers.example.json). logs/*.log is covered by *.log above.
+mcp_servers.json

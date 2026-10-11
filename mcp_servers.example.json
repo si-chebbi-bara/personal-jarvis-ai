@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "jarvis_test": {
+      "command": "python",
+      "args": ["tests/fixtures/mcp_test_server.py"],
+      "env": {},
+      "enabled": true
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "~/jarvis-mcp-sandbox"],
+      "enabled": false
+    },
+    "some_http_server": {
+      "url": "http://localhost:8000/mcp",
+      "headers": {"Authorization": "Bearer ${SOME_TOKEN}"},
+      "enabled": false,
+      "platforms": ["linux"]
+    }
+  }
+}
