@@ -159,6 +159,7 @@ def _parse_server(name: str, raw) -> ServerConfig:
             raise ValueError("'command' must be a non-empty string")
         if has_url and not (isinstance(raw["url"], str) and raw["url"].strip()):
             raise ValueError("'url' must be a non-empty string")
+        cfg.transport = "http" if has_url else "stdio"
         args = _str_list(raw.get("args", []), "args")
         env = _str_dict(raw.get("env", {}), "env")
         headers = _str_dict(raw.get("headers", {}), "headers")
@@ -186,10 +187,8 @@ def _parse_server(name: str, raw) -> ServerConfig:
         return cfg
 
     if has_url:
-        cfg.transport = "http"
         cfg.url = target
     else:
-        cfg.transport = "stdio"
         command = target
         resolved = _resolve_command(command)
         if not resolved:
