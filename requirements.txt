@@ -22,3 +22,6 @@ SpeechRecognition
 fastapi
 uvicorn
 requests
+
+# MCP client (external tool servers, see mcp_servers.example.json)
+mcp==2.3.0
