@@ -5,6 +5,8 @@ Run with:  uvicorn server:app --host 0.0.0.0 --port 8000
 """
 
 import json
+import threading
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,8 +17,20 @@ from starlette.concurrency import run_in_threadpool
 from actions.system import run_shell_command
 from core.agent_loop import run_auto
 from core.llm_brain import handle
+from core.mcp_client import manager as mcp_manager
 
-app = FastAPI(title="Jarvis API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Connect to MCP servers in the background so the API is up immediately;
+    # a request that needs MCP tools before this finishes just waits for it.
+    threading.Thread(target=mcp_manager.ensure_started, name="mcp-warmup", daemon=True).start()
+    yield
+    # Stop MCP server processes (also on `uvicorn --reload`); atexit is the backstop.
+    await run_in_threadpool(mcp_manager.shutdown)
+
+
+app = FastAPI(title="Jarvis API", lifespan=lifespan)
 
 # Home-network only for now, so any origin is allowed. Tighten this during the
 # security step (restrict to the React dev server + the LAN IP).
@@ -83,3 +97,9 @@ async def run_command_auto(req: CommandRequest, request: Request):
 def run_shell(req: ShellRequest):
     """Direct shell access, bypassing the LLM. Same blocklist/timeout/logging as the tool-call path."""
     return run_shell_command(req.command, timeout=req.timeout)
+
+
+@app.get("/api/mcp/status")
+def mcp_status():
+    """Per MCP server: name, status, transport, tool names and a short error. Never env/headers/args."""
+    return {"servers": mcp_manager.status()}
