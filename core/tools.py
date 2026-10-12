@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 
+from core.mcp_client import manager as mcp_manager
 from core.skills_loader import get_skill_declarations
 
 # Absolute, so read_file finds it regardless of the process's working directory.
@@ -147,7 +148,22 @@ SYSTEM_INSTRUCTION = (
     "You are Jarvis, a local PC assistant. When the user wants a real computer action, "
     "you MUST call the matching tool instead of only describing it. "
     "Use open_app with app_name 'notepad' when they want a text editor. "
+    "Tools whose description starts with [MCP: <server>] come from external MCP servers; use them "
+    "when the user asks for that server or its capability. "
     "If they are just chatting, reply briefly with no tool. "
     f"If a tool call fails with an error, use read_file with path '{TROUBLESHOOTING_PATH}' to check "
     "for a matching known issue before just reporting the raw error to the user."
 )
+
+
+# TOOL_DECLARATIONS above is built at import time and holds only built-ins +
+# skills. MCP tools are only known once their servers have started (lazily, on
+# first use), so callers that build a provider request use these instead.
+def get_all_tool_declarations() -> list[dict]:
+    """Built-ins + skills + MCP tools, for Claude / OpenAI / Ollama."""
+    return TOOL_DECLARATIONS + mcp_manager.list_tools()
+
+
+def get_gemini_tool_declarations() -> list[dict]:
+    """Same tools for Gemini, with MCP schemas sanitized to Gemini's OpenAPI subset."""
+    return TOOL_DECLARATIONS + mcp_manager.gemini_declarations()

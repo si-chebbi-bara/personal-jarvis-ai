@@ -18,6 +18,7 @@ from actions.system import (
     set_volume,
     take_screenshot,
 )
+from core.mcp_client import manager as mcp_manager
 from core.skills_loader import load_skills
 
 TOOLS = {
@@ -80,8 +81,14 @@ def execute(decision: dict) -> dict:
         for call in calls:
             name = call.get("tool") or call.get("name")
             arguments = call.get("arguments") or {}
+            # Lookup order: built-in -> skill (both in TOOLS) -> MCP server tool.
             func = TOOLS.get(name)
-            if func is None:
+            if func is not None:
+                result = func(**_filter_args(func, arguments))
+            elif name and mcp_manager.has_tool(name):
+                # MCP tools get their arguments unfiltered: the server validates them.
+                result = mcp_manager.call_tool(name, arguments)
+            else:
                 all_ok = False
                 text = f"Unknown tool: {name}"
                 messages.append(text)
@@ -89,7 +96,6 @@ def execute(decision: dict) -> dict:
                     {"tool": name, "arguments": arguments, "success": False, "message": text}
                 )
                 continue
-            result = func(**_filter_args(func, arguments))
             ok = bool(result.get("success"))
             if not ok:
                 all_ok = False
@@ -104,6 +110,7 @@ def execute(decision: dict) -> dict:
                     # run_shell_command's raw stdout/stderr, when present — the
                     # joined `message` above already folds stdout in, but the
                     # tool panel wants stdout/stderr split for a terminal view.
+                    # MCP tools fill these too (text result / error text).
                     "output": result.get("output"),
                     "error": result.get("error"),
                 }
