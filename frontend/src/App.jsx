@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import { API_BASE } from './api'
+import { API_BASE, UNAUTHORIZED_EVENT, getToken, setToken } from './api'
 import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
 import ToolPanel from './components/ToolPanel'
+import TokenGate from './components/TokenGate'
 
 const STORAGE_KEY = 'jarvis.chats'
 const ACTIVE_CHAT_KEY = 'jarvis.activeChatId'
@@ -68,6 +69,8 @@ function withMessages(chat, added) {
 // itself the moment the backend comes up — no page reload needed.
 function useBackendStatus() {
   const [status, setStatus] = useState('checking') // 'checking' | 'online' | 'offline'
+  // False when the backend has no JARVIS_API_TOKEN set (it then refuses every /api/* call).
+  const [authConfigured, setAuthConfigured] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -79,7 +82,11 @@ function useBackendStatus() {
         const abortTimer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS)
         const res = await fetch(`${API_BASE}/`, { signal: controller.signal })
         clearTimeout(abortTimer)
-        if (!cancelled) setStatus(res.ok ? 'online' : 'offline')
+        const info = res.ok ? await res.json() : null
+        if (!cancelled) {
+          setStatus(res.ok ? 'online' : 'offline')
+          if (info) setAuthConfigured(info.auth_configured !== false)
+        }
       } catch {
         if (!cancelled) setStatus('offline')
       } finally {
@@ -94,11 +101,13 @@ function useBackendStatus() {
     }
   }, [])
 
-  return status
+  return { status, authConfigured }
 }
 
 function App() {
-  const backendStatus = useBackendStatus()
+  const { status: backendStatus, authConfigured } = useBackendStatus()
+  const [token, setTokenState] = useState(getToken)
+  const [tokenRejected, setTokenRejected] = useState(false)
   const [mode, setMode] = useState('manual')
   const [chats, setChats] = useState(loadChats)
   const [activeChatId, setActiveChatId] = useState(() => loadActiveChatId(loadChats()))
@@ -119,6 +128,23 @@ function App() {
     if (!calls || !calls.length) return
     const stamped = calls.map((c) => ({ ...c, ts: Date.now() }))
     setToolActivity((prev) => [...prev, ...stamped].slice(-MAX_ACTIVITY))
+  }
+
+  // apiFetch fires this when the backend answers 401: the saved token is gone,
+  // so fall back to the token prompt.
+  useEffect(() => {
+    function onUnauthorized() {
+      setTokenState('')
+      setTokenRejected(true)
+    }
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
+  }, [])
+
+  function saveToken(value) {
+    setToken(value)
+    setTokenState(value)
+    setTokenRejected(false)
   }
 
   // Persist on every change — localStorage is the only store of chat history.
@@ -183,8 +209,26 @@ function App() {
     setChatViewKey((k) => k + 1)
   }
 
+  // Shown above both the token prompt and the app: no token works until this is fixed.
+  const noTokenBanner = backendStatus === 'online' && !authConfigured && (
+    <div className="backend-banner" role="alert">
+      The backend has no <code>JARVIS_API_TOKEN</code> set, so it refuses
+      every request. Add one to <code>.env</code> and restart it.
+    </div>
+  )
+
+  if (!token) {
+    return (
+      <div className="app-shell">
+        {noTokenBanner}
+        <TokenGate rejected={tokenRejected} onSubmit={saveToken} />
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
+      {noTokenBanner}
       {backendStatus === 'offline' && (
         <div className="backend-banner" role="alert">
           Can&rsquo;t reach the Jarvis backend at <code>{API_BASE}</code> —
