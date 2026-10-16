@@ -8,7 +8,7 @@ import json
 import threading
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -18,6 +18,7 @@ from actions.system import run_shell_command
 from core.agent_loop import run_auto
 from core.llm_brain import handle
 from core.mcp_client import manager as mcp_manager
+from core.security import allowed_origins, get_token, require_auth
 
 
 @asynccontextmanager
@@ -32,14 +33,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Jarvis API", lifespan=lifespan)
 
-# Home-network only for now, so any origin is allowed. Tighten this during the
-# security step (restrict to the React dev server + the LAN IP).
+# Only the listed browser origins may call the API (see core/security.py).
+# Every /api/* route additionally requires the Bearer token.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins(),
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
@@ -55,16 +56,23 @@ class ShellRequest(BaseModel):
 
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "jarvis", "endpoint": "POST /api/command"}
+    # Deliberately open: the UI's connectivity banner polls this. It reveals nothing
+    # beyond "the backend is up" and whether a token has been configured.
+    return {
+        "status": "ok",
+        "service": "jarvis",
+        "endpoint": "POST /api/command",
+        "auth_configured": bool(get_token()),
+    }
 
 
-@app.post("/api/command")
+@app.post("/api/command", dependencies=[Depends(require_auth)])
 def run_command(req: CommandRequest):
     result = handle(req.command, forced_provider=req.provider)
     return result
 
 
-@app.post("/api/command/auto")
+@app.post("/api/command/auto", dependencies=[Depends(require_auth)])
 async def run_command_auto(req: CommandRequest, request: Request):
     """Automatic mode: stream the agent loop's progress as Server-Sent Events.
 
@@ -93,13 +101,13 @@ async def run_command_auto(req: CommandRequest, request: Request):
     )
 
 
-@app.post("/api/shell")
+@app.post("/api/shell", dependencies=[Depends(require_auth)])
 def run_shell(req: ShellRequest):
     """Direct shell access, bypassing the LLM. Same blocklist/timeout/logging as the tool-call path."""
     return run_shell_command(req.command, timeout=req.timeout)
 
 
-@app.get("/api/mcp/status")
+@app.get("/api/mcp/status", dependencies=[Depends(require_auth)])
 def mcp_status():
     """Per MCP server: name, status, transport, tool names and a short error. Never env/headers/args."""
     return {"servers": mcp_manager.status()}

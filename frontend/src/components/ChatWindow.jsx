@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { API_BASE } from '../api'
+import { API_BASE, apiFetch } from '../api'
 import './ChatWindow.css'
 
 const PROVIDERS = ['auto', 'gemini', 'claude', 'openai', 'ollama']
@@ -113,7 +113,7 @@ function ChatWindow({
     setBusy(true)
 
     try {
-      const res = await fetch(`${API_BASE}/api/command`, {
+      const res = await apiFetch('/api/command', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command, provider }),
@@ -155,7 +155,7 @@ function ChatWindow({
     let finished = false
     let maxSteps = 8
     try {
-      const res = await fetch(`${API_BASE}/api/command/auto`, {
+      const res = await apiFetch('/api/command/auto', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command, provider }),

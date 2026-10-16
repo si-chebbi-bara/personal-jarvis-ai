@@ -10,6 +10,13 @@ Known issues hit during development, and their fixes. If something breaks, check
 - **Linux: shared/NTFS-mounted repo breaks after a remount at a different path** — the venv has hardcoded paths baked in. Recreate the venv fresh and reinstall from `requirements-lock.txt` (don't hand-edit `requirements.txt` from memory).
 - **Git on an NTFS-mounted repo (dual-boot / shared drive) misbehaves** — run `git config --global --add safe.directory <path>` and `git config core.fileMode false` (local-only, not global) for that repo.
 
+## API token / CORS
+
+- **Every `/api/*` call returns 503 "JARVIS_API_TOKEN is not set"** — add `JARVIS_API_TOKEN=<16+ characters>` to `.env` and restart the backend (`.env` is only read at startup). Generate one with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
+- **401 "Missing or invalid token"** — the token the client sends doesn't match `.env`. In the web UI it asks again automatically; paste the value from `.env`. For curl, send `-H "Authorization: Bearer <token>"`.
+- **Browser console shows a CORS error, but the backend is running** — the page's address isn't in the allowlist. Add it to `JARVIS_ALLOWED_ORIGINS` in `.env` (exactly as shown in the address bar, e.g. `http://192.168.1.20:5173`, no trailing path) and restart the backend.
+- **Token prompt appears after every reload** — the browser is blocking localStorage (private mode). Use a normal window.
+
 ## Windows PowerShell encoding gotchas
 
 - **`echo "text" >> file` in PowerShell 5.1 writes UTF-16**, which can corrupt a `requirements.txt` or `.gitignore` pip/git expects as UTF-8. Use `Add-Content -Path file -Value "text" -Encoding utf8` instead.

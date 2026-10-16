@@ -111,7 +111,7 @@ Jarvis is an [MCP](https://modelcontextprotocol.io/) client: it can use the tool
 
    ```bash
    uvicorn server:app --host 127.0.0.1 --port 8000
-   curl http://127.0.0.1:8000/api/mcp/status
+   curl -H "Authorization: Bearer $JARVIS_API_TOKEN" http://127.0.0.1:8000/api/mcp/status
    ```
 
    Each server shows `connected`, `failed` (with a short error), `disabled` or `skipped_platform`, plus its tool names.
@@ -120,9 +120,41 @@ To check the whole MCP setup without touching your own config, run `python scrip
 
 **Security:** MCP servers run with your user permissions, and the `run_shell_command` blocklist does **not** apply to MCP tools. Only add servers you trust, and prefer `allowed_tools` and narrow paths (for example, point the filesystem server at one folder).
 
+## Securing the API
+
+The web API can run shell commands, so every `/api/*` route needs a token, and only listed browser origins may call it.
+
+1. Generate a token and put it in `.env` (this file is gitignored):
+
+   ```bash
+   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
+
+   ```text
+   JARVIS_API_TOKEN=<paste the generated value>
+   ```
+
+2. Using Jarvis from your phone? List the page address you open, comma separated:
+
+   ```text
+   JARVIS_ALLOWED_ORIGINS=http://192.168.1.20:5173
+   ```
+
+   `http://localhost:5173` and `http://127.0.0.1:5173` are always allowed. `*` is ignored on purpose.
+
+3. Restart the API server. The web UI asks for the token the first time (paste it once per device).
+
+With no token set, or one shorter than 16 characters, the API refuses every `/api/*` request instead of running open. `GET /` stays open so the UI can tell whether the backend is up. For command-line calls, send `Authorization: Bearer <token>`:
+
+```bash
+curl -H "Authorization: Bearer $JARVIS_API_TOKEN" http://127.0.0.1:8000/api/mcp/status
+```
+
+Run the checks with `python -m pytest tests/test_security.py` (install pytest first with `pip install pytest`; it is not in `requirements.txt`).
+
 ## Security note
 
-This project can execute actions on your computer. Review commands before running them and keep API keys only in `.env`.
+This project can execute actions on your computer. Review commands before running them and keep API keys and `JARVIS_API_TOKEN` only in `.env`.
 
 ## Roadmap
 

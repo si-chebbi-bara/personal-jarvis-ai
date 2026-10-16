@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { API_BASE } from '../api'
+import { API_BASE, apiFetch } from '../api'
 import './ToolPanel.css'
 
 const TOOLS = ['activity', 'terminal']
@@ -119,7 +119,7 @@ function TerminalView() {
     setBusy(true)
 
     try {
-      const res = await fetch(`${API_BASE}/api/shell`, {
+      const res = await apiFetch('/api/shell', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command }),
