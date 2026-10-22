@@ -152,7 +152,7 @@ curl -H "Authorization: Bearer $JARVIS_API_TOKEN" http://127.0.0.1:8000/api/mcp/
 
 Every rejected request (401) is recorded in `logs/security.log` with the time, client IP, method, path and why it failed (no header, not Bearer, wrong token). The token itself is never written. Repeated lines from an IP you don't recognise mean something on your network is probing the API.
 
-Run the checks with `python -m pytest tests/test_security.py` (install pytest first with `pip install pytest`; it is not in `requirements.txt`).
+For a quick yes/no on all of this, run `python scripts/verify_security.py` (no server, no API keys needed; prints PASS/FAIL per check and also confirms the shell blocklist still refuses `rm -rf /`). For the full test suite, run `python -m pytest tests/test_security.py` (install pytest first with `pip install pytest`; it is not in `requirements.txt`).
 
 ## Security note
 
