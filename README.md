@@ -134,13 +134,29 @@ The web API can run shell commands, so every `/api/*` route needs a token, and o
    JARVIS_API_TOKEN=<paste the generated value>
    ```
 
-2. Using Jarvis from your phone? List the page address you open, comma separated:
+2. Using Jarvis from your phone on the same Wi-Fi? Four small steps:
 
-   ```text
-   JARVIS_ALLOWED_ORIGINS=http://192.168.1.20:5173
-   ```
+   1. Find the computer's LAN address: `hostname -I` (Linux) or `ipconfig` (Windows, "IPv4 Address"). Say it is `192.168.1.20`.
+   2. In the backend `.env`, allow the page address your phone will open (comma separated if you have several):
 
-   `http://localhost:5173` and `http://127.0.0.1:5173` are always allowed. `*` is ignored on purpose.
+      ```text
+      JARVIS_ALLOWED_ORIGINS=http://192.168.1.20:5173
+      ```
+
+   3. In `frontend/.env`, point the UI at the backend's LAN address:
+
+      ```text
+      VITE_API_BASE=http://192.168.1.20:8000
+      ```
+
+   4. Start both so they listen on the network, not just this computer:
+
+      ```bash
+      uvicorn server:app --host 0.0.0.0 --port 8000
+      cd frontend && npm run dev -- --host
+      ```
+
+   Then open `http://192.168.1.20:5173` on the phone and paste the token once. The origin must match exactly (scheme, IP and port, no trailing path). `http://localhost:5173` and `http://127.0.0.1:5173` are always allowed. `*` is ignored on purpose. If your router gives the computer a new IP, update both `.env` files.
 
 3. Restart the API server. The web UI asks for the token the first time (paste it once per device).
 
