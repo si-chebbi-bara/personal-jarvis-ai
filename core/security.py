@@ -6,18 +6,21 @@ your personal secret:
     JARVIS_API_TOKEN=<long random string>        # required for every /api/* route
     JARVIS_ALLOWED_ORIGINS=http://192.168.1.20:5173   # optional, comma separated
 
-Generate a token with:  python -c "import secrets; print(secrets.token_urlsafe(32))"
+If JARVIS_API_TOKEN is missing, the backend generates one on startup, saves it
+to .env and prints it once (see ensure_token).
 """
 
 import hmac
 import os
+import secrets
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key
 from fastapi import Header, HTTPException
 
 ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(ROOT / ".env")
+ENV_PATH = ROOT / ".env"
+load_dotenv(ENV_PATH)
 
 MIN_TOKEN_LENGTH = 16
 
@@ -34,6 +37,29 @@ def get_token() -> str:
     """
     token = os.getenv("JARVIS_API_TOKEN", "").strip()
     return token if len(token) >= MIN_TOKEN_LENGTH else ""
+
+
+def ensure_token() -> None:
+    """On startup: if no JARVIS_API_TOKEN is set at all, create one, save it to .env, print it once.
+
+    A token that is set but too short is left alone (require_auth answers 503),
+    so we never overwrite a value you chose yourself.
+    """
+    if os.getenv("JARVIS_API_TOKEN", "").strip():
+        return
+    token = secrets.token_urlsafe(32)
+    try:
+        # Updates an empty "JARVIS_API_TOKEN=" line (as in .env.example) or appends one.
+        ENV_PATH.touch(exist_ok=True)
+        set_key(ENV_PATH, "JARVIS_API_TOKEN", token, quote_mode="never")
+    except OSError as exc:
+        print(f"[security] Could not write JARVIS_API_TOKEN to {ENV_PATH}: {exc}")
+        print("[security] The API will refuse /api/* requests until you add a token by hand.")
+        return
+    os.environ["JARVIS_API_TOKEN"] = token
+    bar = "=" * 72
+    print(f"\n{bar}\nNo JARVIS_API_TOKEN was set, so a new one was generated and saved to .env:\n\n"
+          f"    {token}\n\nPaste it into the web UI once per device. It is not shown again.\n{bar}\n")
 
 
 def allowed_origins() -> list[str]:

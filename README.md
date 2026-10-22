@@ -124,7 +124,7 @@ To check the whole MCP setup without touching your own config, run `python scrip
 
 The web API can run shell commands, so every `/api/*` route needs a token, and only listed browser origins may call it.
 
-1. Generate a token and put it in `.env` (this file is gitignored):
+1. Start the API server once. If `.env` has no `JARVIS_API_TOKEN`, the server generates one, saves it to `.env` (this file is gitignored) and prints it once in the terminal. To pick your own instead, set it before starting:
 
    ```bash
    python -c "import secrets; print(secrets.token_urlsafe(32))"
@@ -144,7 +144,7 @@ The web API can run shell commands, so every `/api/*` route needs a token, and o
 
 3. Restart the API server. The web UI asks for the token the first time (paste it once per device).
 
-With no token set, or one shorter than 16 characters, the API refuses every `/api/*` request instead of running open. `GET /` stays open so the UI can tell whether the backend is up. For command-line calls, send `Authorization: Bearer <token>`:
+If the token is shorter than 16 characters (or `.env` could not be written), the API refuses every `/api/*` request instead of running open. `GET /` stays open so the UI can tell whether the backend is up. For command-line calls, send `Authorization: Bearer <token>`:
 
 ```bash
 curl -H "Authorization: Bearer $JARVIS_API_TOKEN" http://127.0.0.1:8000/api/mcp/status
