@@ -18,11 +18,13 @@ from actions.system import run_shell_command
 from core.agent_loop import run_auto
 from core.llm_brain import handle
 from core.mcp_client import manager as mcp_manager
-from core.security import allowed_origins, get_token, require_auth
+from core.security import allowed_origins, ensure_token, get_token, require_auth
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # First run without a token: create one in .env so the API is never left open.
+    ensure_token()
     # Connect to MCP servers in the background so the API is up immediately;
     # a request that needs MCP tools before this finishes just waits for it.
     threading.Thread(target=mcp_manager.ensure_started, name="mcp-warmup", daemon=True).start()

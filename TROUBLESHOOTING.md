@@ -12,7 +12,9 @@ Known issues hit during development, and their fixes. If something breaks, check
 
 ## API token / CORS
 
-- **Every `/api/*` call returns 503 "JARVIS_API_TOKEN is not set"** — add `JARVIS_API_TOKEN=<16+ characters>` to `.env` and restart the backend (`.env` is only read at startup). Generate one with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
+- **Every `/api/*` call returns 503 "JARVIS_API_TOKEN is not set"** — the token in `.env` is shorter than 16 characters, or the backend could not write a generated one to `.env`. Set `JARVIS_API_TOKEN=<16+ characters>` (or delete the line to have one generated) and restart the backend (`.env` is only read at startup). Generate one with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
+- **Works on the computer, "Failed to fetch" / CORS error on the phone** — the phone's page address is not in `JARVIS_ALLOWED_ORIGINS`, or `frontend/.env` still points `VITE_API_BASE` at `localhost`. See README "Securing the API" step 2, then restart both servers.
+- **Lost the generated token** — it is in `.env` as `JARVIS_API_TOKEN`; it is only printed on the run that created it.
 - **401 "Missing or invalid token"** — the token the client sends doesn't match `.env`. In the web UI it asks again automatically; paste the value from `.env`. For curl, send `-H "Authorization: Bearer <token>"`.
 - **Browser console shows a CORS error, but the backend is running** — the page's address isn't in the allowlist. Add it to `JARVIS_ALLOWED_ORIGINS` in `.env` (exactly as shown in the address bar, e.g. `http://192.168.1.20:5173`, no trailing path) and restart the backend.
 - **Token prompt appears after every reload** — the browser is blocking localStorage (private mode). Use a normal window.
