@@ -7,7 +7,7 @@ export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 // --- Auth -------------------------------------------------------------------
 // Every /api/* route needs the token from the backend's .env (JARVIS_API_TOKEN).
 // It is pasted once per device and kept in this browser's localStorage.
-const TOKEN_KEY = 'jarvis.apiToken'
+const TOKEN_KEY = 'jarvis.token'
 export const UNAUTHORIZED_EVENT = 'jarvis:unauthorized'
 
 export function getToken() {
