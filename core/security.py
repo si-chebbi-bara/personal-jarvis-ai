@@ -10,17 +10,20 @@ If JARVIS_API_TOKEN is missing, the backend generates one on startup, saves it
 to .env and prints it once (see ensure_token).
 """
 
+import datetime as _dt
 import hmac
 import os
 import secrets
 from pathlib import Path
 
 from dotenv import load_dotenv, set_key
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Request
 
 ROOT = Path(__file__).resolve().parent.parent
 ENV_PATH = ROOT / ".env"
 load_dotenv(ENV_PATH)
+
+SECURITY_LOG_PATH = ROOT / "logs" / "security.log"
 
 MIN_TOKEN_LENGTH = 16
 
@@ -75,7 +78,20 @@ def allowed_origins() -> list[str]:
     return result
 
 
-def require_auth(authorization: str | None = Header(default=None)) -> None:
+def _log_failed_auth(request: Request, reason: str) -> None:
+    """Append one line to logs/security.log. Never logs the token. Never raises."""
+    try:
+        SECURITY_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        stamp = _dt.datetime.now().isoformat(timespec="seconds")
+        ip = request.client.host if request.client else "unknown"
+        line = f"[{stamp}] AUTH FAILED | ip={ip} | {request.method} {request.url.path} | {reason}"
+        with SECURITY_LOG_PATH.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+    except Exception:
+        pass
+
+
+def require_auth(request: Request, authorization: str | None = Header(default=None)) -> None:
     """FastAPI dependency: reject the request unless it carries the right Bearer token.
 
     Fails closed: with no usable token configured the API refuses everything
@@ -96,6 +112,13 @@ def require_auth(authorization: str | None = Header(default=None)) -> None:
     if scheme.lower() != "bearer" or not hmac.compare_digest(
         supplied.strip().encode(), expected.encode()
     ):
+        if not authorization:
+            reason = "no Authorization header"
+        elif scheme.lower() != "bearer":
+            reason = "not a Bearer token"
+        else:
+            reason = "wrong token"
+        _log_failed_auth(request, reason)
         raise HTTPException(
             status_code=401,
             detail="Missing or invalid token.",

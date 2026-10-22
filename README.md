@@ -150,6 +150,8 @@ If the token is shorter than 16 characters (or `.env` could not be written), the
 curl -H "Authorization: Bearer $JARVIS_API_TOKEN" http://127.0.0.1:8000/api/mcp/status
 ```
 
+Every rejected request (401) is recorded in `logs/security.log` with the time, client IP, method, path and why it failed (no header, not Bearer, wrong token). The token itself is never written. Repeated lines from an IP you don't recognise mean something on your network is probing the API.
+
 Run the checks with `python -m pytest tests/test_security.py` (install pytest first with `pip install pytest`; it is not in `requirements.txt`).
 
 ## Security note

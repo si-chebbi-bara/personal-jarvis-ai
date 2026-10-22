@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import server
+from core import security
 
 TOKEN = "test-token-0123456789abcdef"
 PROTECTED = [
@@ -15,8 +16,10 @@ PROTECTED = [
 
 
 @pytest.fixture
-def client(monkeypatch):
+def client(monkeypatch, tmp_path):
     monkeypatch.setenv("JARVIS_API_TOKEN", TOKEN)
+    # Keep failed-auth lines out of the real logs/security.log.
+    monkeypatch.setattr(security, "SECURITY_LOG_PATH", tmp_path / "security.log")
     # Never run real commands or call a model from a security test.
     monkeypatch.setattr(server, "run_shell_command", lambda c, timeout=30: {"success": True, "message": "ok"})
     monkeypatch.setattr(server, "handle", lambda c, forced_provider=None: {"success": True, "message": "ok"})
@@ -85,3 +88,31 @@ def test_wildcard_origin_is_ignored(monkeypatch, value):
     from core import security
     monkeypatch.setenv("JARVIS_ALLOWED_ORIGINS", value)
     assert security.allowed_origins() == security.DEFAULT_ORIGINS + ["http://192.168.1.20:5173"]
+
+
+def test_failed_auth_is_logged_without_the_token(client):
+    wrong = "Bearer wrong-token-must-not-be-logged"
+    call(client, "post", "/api/shell", {"command": "echo hi"}, {"Authorization": wrong})
+    call(client, "get", "/api/mcp/status", None)
+    call(client, "post", "/api/command", {"command": "hi"}, {"Authorization": f"Bearer {TOKEN}"})
+    lines = security.SECURITY_LOG_PATH.read_text().splitlines()
+    assert len(lines) == 2  # the successful call is not logged
+    assert "AUTH FAILED" in lines[0] and "POST /api/shell" in lines[0] and "wrong token" in lines[0]
+    assert "ip=" in lines[0]
+    assert "GET /api/mcp/status" in lines[1] and "no Authorization header" in lines[1]
+    text = "\n".join(lines)
+    assert "wrong-token-must-not-be-logged" not in text and TOKEN not in text
+
+
+def test_ensure_token_generates_once_and_keeps_existing(monkeypatch, tmp_path, capsys):
+    env = tmp_path / ".env"
+    env.write_text("OTHER=1\nJARVIS_API_TOKEN=\n")
+    monkeypatch.setattr(security, "ENV_PATH", env)
+    monkeypatch.delenv("JARVIS_API_TOKEN", raising=False)
+    security.ensure_token()
+    token = security.get_token()
+    assert len(token) >= 40
+    assert env.read_text().count("JARVIS_API_TOKEN=") == 1 and f"JARVIS_API_TOKEN={token}" in env.read_text()
+    assert token in capsys.readouterr().out
+    security.ensure_token()  # already set: no new token, nothing printed
+    assert security.get_token() == token and capsys.readouterr().out == ""
